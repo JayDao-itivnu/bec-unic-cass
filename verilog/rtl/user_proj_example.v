@@ -43,59 +43,28 @@ module user_proj_example #(
     inout vssd1,	// User area 1 digital ground
 `endif
 
-    // Wishbone Slave ports (WB MI A)
+    // // Wishbone Slave ports (WB MI A)
     input wb_clk_i,
     input wb_rst_i,
-    input wbs_stb_i,
-    input wbs_cyc_i,
-    input wbs_we_i,
-    input [3:0] wbs_sel_i,
-    input [31:0] wbs_dat_i,
-    input [31:0] wbs_adr_i,
-    output wbs_ack_o,
-    output [31:0] wbs_dat_o,
 
     // Logic Analyzer Signals
     input  [127:0] la_data_in,
-    output [127:0] la_data_out,
-    input  [127:0] la_oenb,
-
-    // IOs
-    input  [BITS-1:0] io_in,
-    output [BITS-1:0] io_out,
-    output [BITS-1:0] io_oeb,
-
-    // IRQ
-    output [2:0] irq
+    output reg [127:0] la_data_out,
+    input  [127:0] la_oenb
 );
     wire clk;
     wire rst;
-
-    wire [BITS-1:0] rdata; 
-    wire [BITS-1:0] wdata;
+    reg master_enable, master_load;
+    wire slv_done;
     wire [BITS-1:0] count;
-
-    wire valid;
-    wire [3:0] wstrb;
     wire [BITS-1:0] la_write;
-
-    // WB MI A
-    assign valid = wbs_cyc_i && wbs_stb_i; 
-    assign wstrb = wbs_sel_i & {4{wbs_we_i}};
-    assign wbs_dat_o = {{(32-BITS){1'b0}}, rdata};
-    assign wdata = wbs_dat_i[BITS-1:0];
-
-    // IO
-    assign io_out = count;
-    assign io_oeb = {(BITS){rst}};
-
-    // IRQ
-    assign irq = 3'b000;	// Unused
-
+    
     // LA
-    assign la_data_out = {{(128-BITS){1'b0}}, count};
+    // assign la_data_out = (slv_done)? {{(128-BITS){1'b1}}, count}: {(128){1'b0}};
+
     // Assuming LA probes [63:32] are for controlling the count register  
-    assign la_write = ~la_oenb[63:64-BITS] & ~{BITS{valid}};
+    assign la_write = ~la_oenb[63:64-BITS];
+
     // Assuming LA probes [65:64] are for controlling the count clk & reset  
     assign clk = (~la_oenb[64]) ? la_data_in[64]: wb_clk_i;
     assign rst = (~la_oenb[65]) ? la_data_in[65]: wb_rst_i;
@@ -105,16 +74,38 @@ module user_proj_example #(
     ) counter(
         .clk(clk),
         .reset(rst),
-        .ready(wbs_ack_o),
-        .valid(valid),
-        .rdata(rdata),
-        .wdata(wbs_dat_i[BITS-1:0]),
-        .wstrb(wstrb),
+        .load(master_load),
+        .enable(master_enable),
         .la_write(la_write),
         .la_input(la_data_in[63:64-BITS]),
-        .count(count)
+        .count(count),
+        .done(slv_done)
     );
 
+    always @(posedge clk or rst) begin
+        if (rst) begin
+            la_data_out <= {(128){1'b0}};
+        end else begin
+            if (slv_done) begin
+                la_data_out <= {{(128-BITS){1'b1}}, count};
+            // end else begin
+            //     la_data_out <= {(128){1'b0}};
+            end
+        end
+    end
+
+    always @(*) begin
+        if (la_data_in[63:48] == 16'hAB00) begin
+            master_enable <= 1'b0;
+            master_load <= 1'b1;
+        end else if ((la_data_in[63:48] == 16'hAB40)) begin
+            master_enable <= 1'b1;
+            master_load <= 1'b0;
+        end else begin
+            master_enable <= 1'b0;
+            master_load <= 1'b0;
+        end
+    end
 endmodule
 
 module counter #(
@@ -122,32 +113,109 @@ module counter #(
 )(
     input clk,
     input reset,
-    input valid,
-    input [3:0] wstrb,
-    input [BITS-1:0] wdata,
+    input load,
+    input enable,
     input [BITS-1:0] la_write,
     input [BITS-1:0] la_input,
-    output reg ready,
-    output reg [BITS-1:0] rdata,
-    output reg [BITS-1:0] count
+    output reg [BITS-1:0] count,
+    output reg done
 );
+    reg [1:0]current_state, next_state;
+    reg [BITS-1:0] reg_count;
+    reg reg_enb_cnt, reg_load, reg_done;
+    parameter idle=2'b00, st_load=2'b01, proc=2'b11, st_done=2'b10;
 
-    always @(posedge clk) begin
-        if (reset) begin
-            count <= 1'b0;
-            ready <= 1'b0;
-        end else begin
-            ready <= 1'b0;
-            if (~|la_write) begin
-                count <= count + 1'b1;
+    always @(posedge clk or reset) begin
+        if (reset) 
+            current_state <= idle;
+        else
+            current_state <= next_state;
+        
+    end
+
+    always @(load or enable or reg_done) begin
+        case (current_state)
+            idle: begin
+                if (load) begin
+                    next_state <= st_load;
+                end else begin 
+                    next_state <= idle;
+                end
             end
-            if (valid && !ready) begin
-                ready <= 1'b1;
-                rdata <= count;
-                if (wstrb[0]) count[7:0]   <= wdata[7:0];
-                if (wstrb[1]) count[15:8]  <= wdata[15:8];
-            end else if (|la_write) begin
-                count <= la_write & la_input;
+
+            st_load: begin
+                if (enable) begin
+                    next_state <= proc;
+                end else begin  
+                    next_state <= st_load; 
+                end
+            end
+
+            proc: begin
+                if (reg_done) begin
+                    next_state <= st_done;
+                end else begin 
+                    next_state <= proc;
+                end
+            end
+
+            st_done: begin
+                next_state <= idle;
+            end
+
+            default:
+            next_state <= idle;
+        endcase
+    end
+    
+    always @(*) begin
+        case (current_state)
+            idle: begin
+                reg_load <= 1'b0;
+                reg_enb_cnt <= 1'b0;
+                done <= 1'b0;
+            end
+
+            st_load: begin
+                reg_load <= 1'b1;
+                reg_enb_cnt <= 1'b0;
+                done <= 1'b0;
+            end
+
+            proc: begin
+                reg_load <= 1'b0;
+                reg_enb_cnt <= 1'b1;
+                done <= 1'b0;
+            end
+
+            st_done: begin
+                reg_load <= 1'b0;
+                reg_enb_cnt <= 1'b0;
+                done <= 1'b1;
+            end
+        endcase
+    end
+
+    always @(posedge clk or reset) begin
+        if (reset) begin
+            reg_count <= 1'b0;
+            reg_done <= 1'b0;
+            count <= 1'b0;
+        end else begin
+            if (reg_enb_cnt) begin
+                if (reg_count < 1000) begin
+                    reg_count <= reg_count + 1'b1;
+                    reg_done <= 1'b0;
+                    // count <= 1'b0;
+                end else begin
+                    reg_count <= 1'b0;
+                    reg_done <= 1'b1;
+                    count <= reg_count;
+                end
+            end else if ((reg_load == 1'b1) && (enable == 1'b0)) begin
+                if (|la_write ) begin
+                    reg_count <= la_write & la_input;
+                end
             end
         end
     end
