@@ -114,7 +114,9 @@ void main()
 	// Set Counter value to zero through LA probes [63:32]
 	reg_la1_data = 0xAB000000;
 
-	reg_la1_data = 0x00000000;
+	reg_la1_data = 0xA000000C;
+	reg_la1_data = 0xA001000B;
+
 	reg_la1_data = 0xAB400000;
 	// Configure LA probes from [63:32] as inputs to disable counter write
 	reg_la1_oenb = reg_la1_iena = 0x00000000;    
