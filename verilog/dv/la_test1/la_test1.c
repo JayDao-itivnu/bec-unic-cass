@@ -122,13 +122,16 @@ void main()
 	reg_la1_oenb = reg_la1_iena = 0x00000000;    
 
 	while (1) {
-		if (reg_la3_data_in == 0xFFFFFFFF) {
+		if (reg_la0_data_in == 0xFFFF000C) {
 			reg_mprj_datal = 0xAB410000;
+		}
+		if (reg_la0_data_in == 0xFFFF000B) {
+			reg_mprj_datal = 0xAB420000;
 			break;
 		}
 	}
-	print("\n");
-	print("Monitor: Test 1 Passed\n\n");	// Makes simulation very long!
+//	print("\n");
+//	print("Monitor: Test 1 Passed\n\n");	// Makes simulation very long!
 	reg_mprj_datal = 0xAB510000;
 }
 

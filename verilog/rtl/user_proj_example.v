@@ -54,19 +54,17 @@ module user_proj_example #(
 );
 	wire clk;
 	wire rst;
-	reg master_enable, master_load;
-	wire slv_done;
-	wire [BITS-1:0] count;
+	reg master_enable, master_load, master_write_ena;
+	wire slv_done, updateRegs;
+	reg [BITS-1:0] count;
 	wire [BITS-1:0] la_write;
-	
+	parameter DELAY = 2000;
+
 	reg [BITS-1:0] rega, regb;
 	// FSM Definition
 	reg [1:0]current_state, next_state;
 	parameter idle=2'b00, write_mode=2'b01, proc=2'b11, read_mode=2'b10;
 	reg master_start, read_done, master_read;
-
-	// LA
-	// assign la_data_out = (slv_done)? {{(128-BITS){1'b1}}, count}: {(128){1'b0}};
 
 	// Assuming LA probes [63:32] are for controlling the count register  
 	assign la_write = ~la_oenb[63:64-BITS];
@@ -76,16 +74,13 @@ module user_proj_example #(
 	assign rst = (~la_oenb[65]) ? la_data_in[65]: wb_rst_i;
 
 	counter #(
-		.BITS(BITS)
-	) counter(
+		.BITS(BITS),
+        .DELAY(DELAY)
+    ) delay (
 		.clk(clk),
 		.reset(rst),
-		.load(master_load),
-		.enable(master_enable),
-		.a(rega),
-		.b(regb),
-		.count(count),
-		.done(slv_done)
+		.enable(master_write_ena),
+		.done(updateRegs)
 	);
 	always @(posedge clk or rst) begin
 		if (rst) 
@@ -94,7 +89,7 @@ module user_proj_example #(
 			current_state <= next_state;
 	end
 
-	always @(la_data_in or slv_done or read_done) begin
+	always @(la_data_in or updateRegs or read_done) begin
 		case (current_state)
 			idle: begin
 				if (la_data_in[63:48] == 16'hAB00) begin
@@ -113,11 +108,11 @@ module user_proj_example #(
 			end
 
 			proc: begin
-				if (slv_done) begin
-					next_state <= read_mode;
-				end else begin 
-					next_state <= proc;
-				end
+				// if (slv_done) begin
+                next_state <= read_mode;
+				// end else begin 
+					// next_state <= proc;
+				// end
 			end
 
 			read_mode: begin
@@ -138,37 +133,38 @@ module user_proj_example #(
 			idle: begin
 				master_enable <= 1'b0;
 				master_load <= 1'b0;
+                master_write_ena <= 1'b0;
 			end 
 
 			write_mode: begin
 				master_enable <= 1'b0;
 				master_load <= 1'b1;
+                master_write_ena <= 1'b0;
 			end
 
 			proc: begin
 				master_enable <= 1'b1;
 				master_load <= 1'b0;
+                master_write_ena <= 1'b0;
 			end
 
 			read_mode: begin
 				master_enable <= 1'b0;
 				master_load <= 1'b0;
+                master_write_ena <= ~updateRegs;
+                // if (updateRegs) begin
+                //     master_write_ena <= 1'b0;
+                // end begin
+                //     master_write_ena <= 1'b1;
+                // end
+                
 			end
 			default: begin
 				master_enable <= 1'b0;
 				master_load <= 1'b0;
+                master_write_ena <= 1'b0;
 			end 
 		endcase 
-		// if (la_data_in[63:48] == 16'hAB00) begin
-		// 	master_enable <= 1'b0;
-		// 	master_load <= 1'b1;
-		// end else if ((la_data_in[63:48] == 16'hAB40)) begin
-		// 	master_enable <= 1'b1;
-		// 	master_load <= 1'b0;
-		// end else begin
-		// 	master_enable <= 1'b0;
-		// 	master_load <= 1'b0;
-		// end
 	end
 
 	always @(posedge clk or rst) begin
@@ -177,6 +173,7 @@ module user_proj_example #(
 			regb <= {{(BITS-1){1'b0}}};
 			la_data_out <= {(128){1'b0}};
 			read_done <= 1'b0;
+            count <= 1'b0;
 		end else begin
 			case (current_state)
 				idle: begin
@@ -198,8 +195,22 @@ module user_proj_example #(
 				end
 
 				read_mode: begin
-					la_data_out <= {{(128-BITS){1'b1}}, count};
-					read_done <= 1'b1;
+                    if (updateRegs) begin
+                        if (count == 16'h0001) begin
+                            la_data_out <= {{(128-BITS){1'b1}}, rega};
+                        end else if (count == 16'h0002)  begin
+                            la_data_out <= {{(128-BITS){1'b1}}, regb};
+                        end
+                            
+                        if (count < 3) begin
+                            count <= count + 1'b1;
+                            read_done <= 1'b0;
+                        end else begin
+                            count <= 1'b0;
+                            read_done <= 1'b1;
+                        end
+                    end
+					
 				end
 				default: begin
 					rega <= {{(BITS-1){1'b0}}};
@@ -213,21 +224,18 @@ module user_proj_example #(
 endmodule
 
 module counter #(
-	parameter BITS = 16
+	parameter BITS = 16,
+    parameter DELAY = 1000
 )(
 	input clk,
 	input reset,
-	input load,
 	input enable,
-	input [BITS-1:0] a,
-	input [BITS-1:0] b,
-	output reg [BITS-1:0] count,
 	output reg done
 );
 	reg [1:0]current_state, next_state;
 	reg [BITS-1:0] reg_count;
-	reg reg_enb_cnt, reg_load, reg_done;
-	parameter idle=2'b00, st_load=2'b01, proc=2'b11, st_done=2'b10;
+	reg reg_enb_cnt, reg_done;
+	parameter idle=2'b00, proc=2'b11, st_done=2'b10;
 
 	always @(posedge clk or reset) begin
 		if (reset) 
@@ -236,21 +244,13 @@ module counter #(
 			current_state <= next_state;
 	end
 
-	always @(load or enable or reg_done) begin
+	always @(enable or reg_done) begin
 		case (current_state)
 			idle: begin
-				if (load) begin
-					next_state <= st_load;
-				end else begin 
-					next_state <= idle;
-				end
-			end
-
-			st_load: begin
 				if (enable) begin
 					next_state <= proc;
-				end else begin  
-					next_state <= st_load; 
+				end else begin 
+					next_state <= idle;
 				end
 			end
 
@@ -274,25 +274,16 @@ module counter #(
 	always @(*) begin
 		case (current_state)
 			idle: begin
-				reg_load <= 1'b0;
-				reg_enb_cnt <= 1'b0;
-				done <= 1'b0;
-			end
-
-			st_load: begin
-				reg_load <= 1'b1;
 				reg_enb_cnt <= 1'b0;
 				done <= 1'b0;
 			end
 
 			proc: begin
-				reg_load <= 1'b0;
 				reg_enb_cnt <= 1'b1;
 				done <= 1'b0;
 			end
 
 			st_done: begin
-				reg_load <= 1'b0;
 				reg_enb_cnt <= 1'b0;
 				done <= 1'b1;
 			end
@@ -303,21 +294,19 @@ module counter #(
 		if (reset) begin
 			reg_count <= 1'b0;
 			reg_done <= 1'b0;
-			count <= 1'b0;
 		end else begin
 			if (reg_enb_cnt) begin
-				if (reg_count < 1000) begin
+				if (reg_count < DELAY) begin
 					reg_count <= reg_count + 1'b1;
 					reg_done <= 1'b0;
-					// count <= 1'b0;
 				end else begin
 					reg_count <= 1'b0;
 					reg_done <= 1'b1;
-					count <= reg_count;
 				end
-			end else if ((reg_load == 1'b1) && (enable == 1'b0)) begin
-				reg_count <=  a;
-			end
+            end else begin
+                reg_count <= 1'b0;
+			    reg_done <= 1'b0;
+            end
 		end
 	end
 
