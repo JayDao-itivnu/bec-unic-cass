@@ -18,6 +18,7 @@
 // This include is relative to $CARAVEL_PATH (see Makefile)
 #include <defs.h>
 #include <stub.c>
+// #define reg_mprj_slave (*(volatile uint32_t*)0x30000000)
 
 // --------------------------------------------------------
 
@@ -28,6 +29,13 @@
 		- Flags when counter value exceeds 500 through the management SoC gpio
 		- Outputs message to the UART when the test concludes successfuly
 */
+static uint32_t write_la(char *reg) {
+  // enable sinc3
+  if (reg == "w1"){
+	reg_la1_data = 0xA001000B;
+  }
+  // enable vco0
+  }
 
 void main()
 {
@@ -115,7 +123,8 @@ void main()
 	reg_la1_data = 0xAB000000;
 
 	reg_la1_data = 0xA000000C;
-	reg_la1_data = 0xA001000B;
+	write_la("w1");
+	// reg_la1_data = 0xA001000B;
 
 	reg_la1_data = 0xAB400000;
 	// Configure LA probes from [63:32] as inputs to disable counter write
