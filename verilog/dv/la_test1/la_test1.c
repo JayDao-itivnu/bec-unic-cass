@@ -18,8 +18,21 @@
 // This include is relative to $CARAVEL_PATH (see Makefile)
 #include <defs.h>
 #include <stub.c>
-// #define reg_mprj_slave (*(volatile uint32_t*)0x30000000)
+#include <io_la.c>
 
+#define reg_mprj_slave 	(*(volatile uint32_t*)0x30000000)
+
+#define reg_wout_0 	(*(volatile uint32_t*)0x30000004)
+#define reg_wout_1 	(*(volatile uint32_t*)0x30000008)
+#define reg_wout_2 	(*(volatile uint32_t*)0x3000000C)
+#define reg_wout_3 	(*(volatile uint32_t*)0x30000010)
+#define reg_wout_4 	(*(volatile uint32_t*)0x30000014)
+
+#define reg_zout_0 	(*(volatile uint32_t*)0x30000018)
+#define reg_zout_1 	(*(volatile uint32_t*)0x3000001C)
+#define reg_zout_2 	(*(volatile uint32_t*)0x30000020)
+#define reg_zout_3 	(*(volatile uint32_t*)0x30000024)
+#define reg_zout_4 	(*(volatile uint32_t*)0x30000028)
 // --------------------------------------------------------
 
 /*
@@ -29,18 +42,12 @@
 		- Flags when counter value exceeds 500 through the management SoC gpio
 		- Outputs message to the UART when the test concludes successfuly
 */
-static uint32_t write_la(char *reg) {
-  // enable sinc3
-  if (reg == "w1"){
-	reg_la1_data = 0xA001000B;
-  }
-  // enable vco0
-  }
 
 void main()
 {
 	int j;
-
+	uint32_t becStatus 	=  reg_la3_data_in & 0x0003C000;			// becStatus ~ la3_data [17:14]
+	uint32_t wStatus	=  reg_la3_data_in & 0x00003FFF;			// wStatus	 ~ la3_data [13:0]
 	/* Set up the housekeeping SPI to be connected internally so	*/
 	/* that external pin changes don't affect it.			*/
 
@@ -109,24 +116,39 @@ void main()
     reg_mprj_xfer = 1;
     while (reg_mprj_xfer == 1);
 
-    // Configure LA probes [31:0], [127:64] as inputs to the cpu 
-	// Configure LA probes [63:32] as outputs from the cpu
-	reg_la0_oenb = reg_la0_iena = 0x00000000;    // [31:0]
+    // Configure LA probes [127:64] as inputs to the cpu 
+	// Configure LA probes [95:0] as outputs from the cpu
+	reg_la0_oenb = reg_la0_iena = 0xFFFFFFFF;    // [31:0]
 	reg_la1_oenb = reg_la1_iena = 0xFFFFFFFF;    // [63:32]
-	reg_la2_oenb = reg_la2_iena = 0x00000000;    // [95:64]
+	reg_la2_oenb = reg_la2_iena = 0xFFFFFFFF;    // [95:64]
 	reg_la3_oenb = reg_la3_iena = 0x00000000;    // [127:96]
 
 	// Flag start of the test 
-	reg_mprj_datal = 0xAB400000;
+	reg_mprj_datal 	= 0xAB400000;
+	reg_la0_data 	= 0xAB400000;
 
-	// Set Counter value to zero through LA probes [63:32]
-	reg_la1_data = 0xAB000000;
+	// Writing the internal inputs for BEC 
+	write_la(wStatus, 0xA001000BA001000BA001000BBBB);
+	write_la(wStatus, 0xA001000BA001000BA001000BBBB);
+	write_la(wStatus, 0xA001000BA001000BA001000BBBB);
+	write_la(wStatus, 0xA001000BA001000BA001000BBBB);
+	write_la(wStatus, 0xA001000BA001000BA001000BBBB);
+	write_la(wStatus, 0xA001000BA001000BA001000BBBB);
+	write_la(wStatus, 0xA001000BA001000BA001000BBBB);
 
-	reg_la1_data = 0xA000000C;
-	write_la("w1");
-	// reg_la1_data = 0xA001000B;
+	// Start Encryption Process
+	reg_mprj_datal 	= 0xAB800000;
+	reg_la0_data = 0xAB800000;
+	
+	/* Re-Configure LA probes
+	Configure LA probes [127:32] as inputs to the cpu 
+	Configure LA probes [31:0] as outputs from the cpu
+	*/ 
+	reg_la0_oenb = reg_la0_iena = 0xFFFFFFFF;    // [31:0]
+	reg_la1_oenb = reg_la1_iena = 0x00000000;    // [63:32]
+	reg_la2_oenb = reg_la2_iena = 0x00000000;    // [95:64]
+	reg_la3_oenb = reg_la3_iena = 0x00000000;    // [127:96]
 
-	reg_la1_data = 0xAB400000;
 	// Configure LA probes from [63:32] as inputs to disable counter write
 	reg_la1_oenb = reg_la1_iena = 0x00000000;    
 

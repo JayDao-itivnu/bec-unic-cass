@@ -56,11 +56,10 @@ module user_proj_example #(
 	wire rst;
 	reg master_enable, master_load, master_write_ena;
 	wire slv_done, updateRegs;
-	reg [BITS-1:0] count;
 	wire [BITS-1:0] la_write;
 	parameter DELAY = 2000;
 
-	reg [BITS-1:0] rega, regb;
+	reg [162:0] rega, regb, regc, regd, rege, regf, regh;
 	// FSM Definition
 	reg [1:0]current_state, next_state;
 	parameter idle=2'b00, write_mode=2'b01, proc=2'b11, read_mode=2'b10;
@@ -73,15 +72,16 @@ module user_proj_example #(
 	assign clk = (~la_oenb[64]) ? la_data_in[64]: wb_clk_i;
 	assign rst = (~la_oenb[65]) ? la_data_in[65]: wb_rst_i;
 
-	counter #(
-		.BITS(BITS),
-        .DELAY(DELAY)
-    ) delay (
-		.clk(clk),
-		.reset(rst),
-		.enable(master_write_ena),
-		.done(updateRegs)
-	);
+	// counter #(
+	// 	.BITS(BITS),
+    //     .DELAY(DELAY)
+    // ) delay (
+	// 	.clk(clk),
+	// 	.reset(rst),
+	// 	.enable(master_write_ena),
+	// 	.done(updateRegs)
+	// );
+	
 	always @(posedge clk or rst) begin
 		if (rst) 
 			current_state <= idle;
@@ -92,7 +92,7 @@ module user_proj_example #(
 	always @(la_data_in or updateRegs or read_done) begin
 		case (current_state)
 			idle: begin
-				if (la_data_in[63:48] == 16'hAB00) begin
+				if (la_data_in[31:16] == 16'hAB40) begin
 					next_state <= write_mode;
 				end else begin 
 					next_state <= idle;
@@ -100,7 +100,7 @@ module user_proj_example #(
 			end
 
 			write_mode: begin
-				if (la_data_in[63:48] == 16'hAB40) begin
+				if (la_data_in[63:48] == 16'hAB80) begin
 					next_state <= proc;
 				end else begin 
 					next_state <= write_mode;
@@ -169,24 +169,58 @@ module user_proj_example #(
 
 	always @(posedge clk or rst) begin
 		if (rst) begin
-			rega <= {{(BITS-1){1'b0}}};
-			regb <= {{(BITS-1){1'b0}}};
+			rega <= 0;
+			regb <= 0;
+			regc <= 0;
+			regd <= 0;
+			rege <= 0;
+			regf <= 0;
+			regh <= 0;
 			la_data_out <= {(128){1'b0}};
 			read_done <= 1'b0;
             count <= 1'b0;
 		end else begin
 			case (current_state)
 				idle: begin
-					rega <= {{(BITS-1){1'b0}}};
-					regb <= {{(BITS-1){1'b0}}};
+					rega <= 0;
+					regb <= 0;
+					regc <= 0;
+					regd <= 0;
+					rege <= 0;
+					regf <= 0;
+					regh <= 0;
 					read_done <= 1'b0;
 				end 
 
 				write_mode: begin
-					if (la_data_in[63:48] == 16'hA000) begin
-						rega <= la_data_in[47:32];
-					end else if (la_data_in[63:48] == 16'hA001) begin
-						regb <= la_data_in[47:32];
+					if (la_data_in[95:82] == 14'h0001) begin
+						rega[162:82] 	<= la_data_in[81:0];
+					end else if (la_data_in[95:82] == 14'h0002) begin
+						rega[81:0] 		<= la_data_in[80:0];
+					end else if (la_data_in[95:82] == 14'h0003) begin
+						regb[162:82] 	<= la_data_in[81:0];
+					end else if (la_data_in[95:82] == 14'h0004) begin
+						regb[81:0] 		<= la_data_in[80:0];
+					end else if (la_data_in[95:82] == 14'h0005) begin
+						regc[162:82] 	<= la_data_in[81:0];
+					end else if (la_data_in[95:82] == 14'h0006) begin
+						regc[81:0] 		<= la_data_in[80:0];
+					end else if (la_data_in[95:82] == 14'h0007) begin
+						regd[162:82] 	<= la_data_in[81:0];
+					end else if (la_data_in[95:82] == 14'h0008) begin
+						regd[81:0] 		<= la_data_in[80:0];
+					end else if (la_data_in[95:82] == 14'h0009) begin
+						rege[162:82] 	<= la_data_in[81:0];
+					end else if (la_data_in[95:82] == 14'h000A) begin
+						rege[81:0] 		<= la_data_in[80:0];
+					end else if (la_data_in[95:82] == 14'h000B) begin
+						regf[162:82] 	<= la_data_in[81:0];
+					end else if (la_data_in[95:82] == 14'h000C) begin
+						regf[81:0] 		<= la_data_in[80:0];
+					end else if (la_data_in[95:82] == 14'h000D) begin
+						regh[162:82] 	<= la_data_in[81:0];
+					end else if (la_data_in[95:82] == 14'h000E) begin
+						regh[81:0] 		<= la_data_in[80:0];
 					end
 				end
 				
@@ -223,92 +257,4 @@ module user_proj_example #(
 	end
 endmodule
 
-module counter #(
-	parameter BITS = 16,
-    parameter DELAY = 1000
-)(
-	input clk,
-	input reset,
-	input enable,
-	output reg done
-);
-	reg [1:0]current_state, next_state;
-	reg [BITS-1:0] reg_count;
-	reg reg_enb_cnt, reg_done;
-	parameter idle=2'b00, proc=2'b11, st_done=2'b10;
-
-	always @(posedge clk or reset) begin
-		if (reset) 
-			current_state <= idle;
-		else
-			current_state <= next_state;
-	end
-
-	always @(enable or reg_done) begin
-		case (current_state)
-			idle: begin
-				if (enable) begin
-					next_state <= proc;
-				end else begin 
-					next_state <= idle;
-				end
-			end
-
-			proc: begin
-				if (reg_done) begin
-					next_state <= st_done;
-				end else begin 
-					next_state <= proc;
-				end
-			end
-
-			st_done: begin
-				next_state <= idle;
-			end
-
-			default:
-			next_state <= idle;
-		endcase
-	end
-	
-	always @(*) begin
-		case (current_state)
-			idle: begin
-				reg_enb_cnt <= 1'b0;
-				done <= 1'b0;
-			end
-
-			proc: begin
-				reg_enb_cnt <= 1'b1;
-				done <= 1'b0;
-			end
-
-			st_done: begin
-				reg_enb_cnt <= 1'b0;
-				done <= 1'b1;
-			end
-		endcase
-	end
-
-	always @(posedge clk or reset) begin
-		if (reset) begin
-			reg_count <= 1'b0;
-			reg_done <= 1'b0;
-		end else begin
-			if (reg_enb_cnt) begin
-				if (reg_count < DELAY) begin
-					reg_count <= reg_count + 1'b1;
-					reg_done <= 1'b0;
-				end else begin
-					reg_count <= 1'b0;
-					reg_done <= 1'b1;
-				end
-            end else begin
-                reg_count <= 1'b0;
-			    reg_done <= 1'b0;
-            end
-		end
-	end
-
-endmodule
 `default_nettype wire
