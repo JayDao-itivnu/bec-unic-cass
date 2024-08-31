@@ -18,17 +18,24 @@
 // This include is relative to $CARAVEL_PATH (see Makefile)
 #include <defs.h>
 #include <stub.c>
+#include <../../../verilog/dv/la_test1/sm_bec_v3_randomKey_spec.h>
+
+
 #define reg_wout_0 	(*(volatile uint32_t*)0x30000004)
 #define reg_wout_1 	(*(volatile uint32_t*)0x30000008)
 #define reg_wout_2 	(*(volatile uint32_t*)0x3000000C)
 #define reg_wout_3 	(*(volatile uint32_t*)0x30000010)
 #define reg_wout_4 	(*(volatile uint32_t*)0x30000014)
+#define reg_wout_5 	(*(volatile uint32_t*)0x30000018)
 
-#define reg_zout_0 	(*(volatile uint32_t*)0x30000018)
-#define reg_zout_1 	(*(volatile uint32_t*)0x3000001C)
-#define reg_zout_2 	(*(volatile uint32_t*)0x30000020)
-#define reg_zout_3 	(*(volatile uint32_t*)0x30000024)
-#define reg_zout_4 	(*(volatile uint32_t*)0x30000028)
+#define reg_zout_0 	(*(volatile uint32_t*)0x3000001C)
+#define reg_zout_1 	(*(volatile uint32_t*)0x30000020)
+#define reg_zout_2 	(*(volatile uint32_t*)0x30000024)
+#define reg_zout_3 	(*(volatile uint32_t*)0x30000028)
+#define reg_zout_4 	(*(volatile uint32_t*)0x3000002C)
+#define reg_zout_5 	(*(volatile uint32_t*)0x30000030)
+
+#define reg_cpuStatus (*(volatile uint32_t*)0x30000034)
 // --------------------------------------------------------
 
 /*
@@ -41,41 +48,83 @@
 static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg1, uint32_t data_reg2) {
   // enable sinc3
 	uint32_t becAddres;
-	switch (wStatus) {
-		case 0x00000001:
-			becAddres = 0x00040000;
-		case 0x00000003:
+	uint32_t BecStatus 	= reg_la3_data_in & 0x3C000000; //Take 4 bits of becStatus (la3_data_in[29:26])
+	reg_mprj_datal = BecStatus;
+	switch (BecStatus) {
+		// case 0x04000000:
+		// 	becAddres = 0x00040000;
+		case 0x04000000:				// la3_data_in[29:26] = "0001"
 			becAddres = 0x000C0000;
-		case 0x00000007:
+		case 0x08000000:				// la3_data_in[29:26] = "0010"
 			becAddres = 0x001C0000;
-		case 0x0000000F:
+		case 0x0C000000:				// la3_data_in[29:26] = "0011"
 			becAddres = 0x003C0000;
-		case 0x0000001F:
+		case 0x10000000:				// la3_data_in[29:26] = "0100"
 			becAddres = 0x007C0000;
-		case 0x0000003F:
+		case 0x14000000:				// la3_data_in[29:26] = "0101"
 			becAddres = 0x00FC0000;
-		case 0x0000007F:
+		case 0x18000000:				// la3_data_in[29:26] = "0110"
 			becAddres = 0x01FC0000;
-		case 0x000000FF:
+		case 0x1C000000:				// la3_data_in[29:26] = "0111"
 			becAddres = 0x03FC0000;
-		case 0x000001FF:
+		case 0x20000000:				// la3_data_in[29:26] = "1000"
 			becAddres = 0x07FC0000;
-		case 0x000003FF:
+		case 0x24000000:				// la3_data_in[29:26] = "1001"
 			becAddres = 0x0FFC0000;
-		case 0x000007FF:
+		case 0x28000000:				// la3_data_in[29:26] = "1010"
 			becAddres = 0x1FFC0000;
-		case 0x00000FFF:
+		case 0x2C000000:				// la3_data_in[29:26] = "1011"
 			becAddres = 0x3FFC0000;
-		case 0x00001FFF:
+		case 0x30000000:				// la3_data_in[29:26] = "1100"
 			becAddres = 0x7FFC0000;
-		case 0x00003FFF:
+		case 0x34000000:				// la3_data_in[29:26] = "1101"
 			becAddres = 0xFFFC0000;
+		default:
+			becAddres = 0x00040000;
+	}
+	reg_la2_data = 0;
+	reg_la0_data = data_reg2;
+	reg_la1_data = data_reg1;
+	reg_la2_data = becAddres ^ data_reg0;
+
 	}
 
-	reg_la2_data = becAddres & data_reg0;
-	reg_la1_data = data_reg1;
-	reg_la0_data = data_reg2;
+
+static uint32_t read_la (uint32_t cpuState, uint32_t becStatus) {
+	switch (becStatus) {
+		case 0x04000000: {
+			reg_wout_0 = reg_la3_data_in & 0x03FFFFFF;
+			reg_wout_1 = reg_la2_data_in;
+			reg_wout_2 = reg_la1_data_in;
+			
+			reg_la0_data = 0x04000000;
+		}
+
+		case 0x08000000: {
+			reg_wout_3 = reg_la3_data_in & 0x03FFFFFF;
+			reg_wout_4 = reg_la2_data_in;
+			reg_wout_5 = reg_la1_data_in;
+
+			reg_la0_data = 0x08000000;
+		}
+
+		case 0x0C00000: {
+			reg_zout_0 = reg_la3_data_in & 0x03FFFFFF;
+			reg_zout_1 = reg_la2_data_in;
+			reg_zout_2 = reg_la1_data_in;
+
+			reg_la0_data = 0x0C000000;
+		}
+
+		case 0x1000000: {
+			reg_zout_3 = reg_la3_data_in & 0x03FFFFFF;
+			reg_zout_4 = reg_la2_data_in;
+			reg_zout_5 = reg_la1_data_in;
+
+			reg_la0_data = 0x10000000;
+		}
 	}
+}
 
 void main()
 {
@@ -160,62 +209,58 @@ void main()
 	reg_mprj_datal	=	0xAB400000;
 	reg_la0_data 	=	0xAB400000;
 
-	// Set Counter value to zero through LA probes [63:32]
-	becStatus = reg_la3_data_in & 0x00003FFF;
-	becState = reg_la3_data_in & 0x0000C000;
-
-	write_la("w1");
-	// reg_la1_data = 0xA001000B;
-
-	reg_la1_data = 0xAB400000;
-	// Configure LA probes from [63:32] as inputs to disable counter write
-	reg_la1_oenb = reg_la1_iena = 0x00000000;    
+	// Configure BEC Status Notifications [127:122]
+	becStatus 	= reg_la3_data_in & 0x3C000000;			// Next 4-bits of addresses inside BEC core
+	becState 	= reg_la3_data_in & 0xC0000000;			// First 2-bits of FSM status inside BEC core    
 
 	while (1) {
-		if (becState == 0x00004000) {	// Write Process from Processor to BEC core
-		
+		if (becState == 0x40000000) {	// Write Process from Processor to BEC core (la3[31:30] = "01")
+			while (becStatus != 0x38000000) {
 			// Writing w1 register
-			write_la(becStatus, w1[0], w1[1], w1[2]);
-			write_la(becStatus, w1[3], w1[4], w1[5]);
+				write_la(reg_la3_data_in, w1[0], w1[1], w1[2]);
+				write_la(reg_la3_data_in, w1[3], w1[4], w1[5]);
 
-			// Writing z1 register
-			write_la(becStatus, z1[0], z1[1], z1[2]);
-			write_la(becStatus, z1[3], z1[4], z1[5]);
+				// Writing z1 register
+				write_la(reg_la3_data_in, z1[0], z1[1], z1[2]);
+				write_la(reg_la3_data_in, z1[3], z1[4], z1[5]);
 
-			// Writing w2 register
-			write_la(becStatus, w2[0], w2[1], w2[2]);
-			write_la(becStatus, w2[3], w2[4], w2[5]);
+				// Writing w2 register
+				write_la(reg_la3_data_in, w2[0], w2[1], w2[2]);
+				write_la(reg_la3_data_in, w2[3], w2[4], w2[5]);
 
-			// Writing z2 register
-			write_la(becStatus, z2[0], z2[1], z2[2]);
-			write_la(becStatus, z2[3], z2[4], z2[5]);
+				// Writing z2 register
+				write_la(reg_la3_data_in, z2[0], z2[1], z2[2]);
+				write_la(reg_la3_data_in, z2[3], z2[4], z2[5]);
 
-			// Writing inv_w0 register
-			write_la(becStatus, inv_w0[0], inv_w0[1], inv_w0[2]);
-			write_la(becStatus, inv_w0[3], inv_w0[4], inv_w0[5]);
+				// Writing inv_w0 register
+				write_la(reg_la3_data_in, inv_w0[0], inv_w0[1], inv_w0[2]);
+				write_la(reg_la3_data_in, inv_w0[3], inv_w0[4], inv_w0[5]);
 
-			// Writing d register
-			write_la(becStatus, d[0], d[1], d[2]);
-			write_la(becStatus, d[3], d[4], d[5]);
+				// Writing d register
+				write_la(reg_la3_data_in, d[0], d[1], d[2]);
+				write_la(reg_la3_data_in, d[3], d[4], d[5]);
 
-			// Writing key register
-			write_la(becStatus, key[0], key[1], key[2]);
-			write_la(becStatus, key[3], key[4], key[5]);
-		} else if (becState == 0x00008000) {
+				// Writing key register
+				write_la(reg_la3_data_in, key[0], key[1], key[2]);
+				write_la(reg_la3_data_in, key[3], key[4], key[5]);
+			}
+			reg_la0_data 	=	0xAB410000;
+		} else if (becState == 0x80000000) {
 			// Configure LA probes 2, 1, and 0 [95:0] as inputs to the cpu 
 			// Configure LA probes 3 [127:96] as output from the cpu
-			reg_la0_oenb = reg_la0_iena = 0x00000000;  // [31:0]
+			reg_la0_oenb = reg_la0_iena = 0xFFFFFFFF;  // [31:0]
 			reg_la1_oenb = reg_la1_iena = 0x00000000;  // [63:32]
 			reg_la2_oenb = reg_la2_iena = 0x00000000;  // [95:64]
-			reg_la3_oenb = reg_la3_iena = 0xFFFFFFFF;  // [127:96]
+			reg_la3_oenb = reg_la3_iena = 0x00000000;  // [127:96]
 			// Inform processer being processing
 			reg_mprj_datal = 0xAB410000;
 
-		} else if (becState == 0x0000C000) {
+		} else if (becState == 0xC0000000) {
 			reg_mprj_datal = 0xAB420000;
 			// Inform processer being read from BEC
-			uint32_t cpuAddress, cpuState;
-			cpuAddress = reg_la0_data_in & 
+			while (becState == 0xC0000000) {
+				read_la(becState, becStatus);
+			}
 		}
 		if (reg_la0_data_in == 0xFFFF000C) {
 			reg_mprj_datal = 0xAB410000;

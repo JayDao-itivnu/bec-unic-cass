@@ -69,8 +69,8 @@ module user_proj_example #(
 	assign la_write = ~la_oenb[63:64-BITS];
 
 	// Assuming LA probes [65:64] are for controlling the count clk & reset  
-	assign clk = (~la_oenb[64]) ? la_data_in[64]: wb_clk_i;
-	assign rst = (~la_oenb[65]) ? la_data_in[65]: wb_rst_i;
+	assign clk = wb_clk_i;
+	assign rst = wb_rst_i;
 
 	// counter #(
 	// 	.BITS(BITS),
@@ -89,7 +89,7 @@ module user_proj_example #(
 			current_state <= next_state;
 	end
 
-	always @(la_data_in or updateRegs or read_done) begin
+	always @(la_data_in or read_done) begin
 		case (current_state)
 			idle: begin
 				if (la_data_in[31:16] == 16'hAB40) begin
@@ -100,7 +100,7 @@ module user_proj_example #(
 			end
 
 			write_mode: begin
-				if (la_data_in[63:48] == 16'hAB80) begin
+				if (la_data_in[31:16] == 16'hAB41) begin
 					next_state <= proc;
 				end else begin 
 					next_state <= write_mode;
@@ -178,7 +178,6 @@ module user_proj_example #(
 			regh <= 0;
 			la_data_out <= {(128){1'b0}};
 			read_done <= 1'b0;
-            count <= 1'b0;
 		end else begin
 			case (current_state)
 				idle: begin
@@ -190,37 +189,52 @@ module user_proj_example #(
 					regf <= 0;
 					regh <= 0;
 					read_done <= 1'b0;
+					la_data_out[127:122] <= 6'b010000; 
 				end 
 
 				write_mode: begin
-					if (la_data_in[95:82] == 14'h0001) begin
+					if (la_data_in[95:82] == 14'b00000000000001) begin
 						rega[162:82] 	<= la_data_in[81:0];
-					end else if (la_data_in[95:82] == 14'h0002) begin
-						rega[81:0] 		<= la_data_in[80:0];
-					end else if (la_data_in[95:82] == 14'h0003) begin
+						la_data_out[95:90] <= 6'b010001; 	//0x04
+					end else if (la_data_in[95:82] == 14'b00000000000011) begin
+						rega[81:0] 		<= la_data_in[81:1];
+						la_data_out[95:90] <= 6'b010010;	//0x08
+					end else if (la_data_in[95:82] == 14'b00000000000111) begin
 						regb[162:82] 	<= la_data_in[81:0];
-					end else if (la_data_in[95:82] == 14'h0004) begin
+						la_data_out[95:90] <= 6'b010011;	//0x0C
+					end else if (la_data_in[95:82] == 14'b00000000001111) begin
 						regb[81:0] 		<= la_data_in[80:0];
-					end else if (la_data_in[95:82] == 14'h0005) begin
+						la_data_out[95:90] <= 6'b010100; 	//0x10
+					end else if (la_data_in[95:82] == 14'b00000000011111) begin
 						regc[162:82] 	<= la_data_in[81:0];
-					end else if (la_data_in[95:82] == 14'h0006) begin
+						la_data_out[95:90] <= 6'b010101;	//0x14
+					end else if (la_data_in[95:82] == 14'b00000000111111) begin
 						regc[81:0] 		<= la_data_in[80:0];
-					end else if (la_data_in[95:82] == 14'h0007) begin
+						la_data_out[95:90] <= 6'b010110;	//0x18
+					end else if (la_data_in[95:82] == 14'b00000001111111) begin
 						regd[162:82] 	<= la_data_in[81:0];
-					end else if (la_data_in[95:82] == 14'h0008) begin
+						la_data_out[95:90] <= 6'b010111;	//0x1C
+					end else if (la_data_in[95:82] == 14'b00000011111111) begin
 						regd[81:0] 		<= la_data_in[80:0];
-					end else if (la_data_in[95:82] == 14'h0009) begin
+						la_data_out[95:90] <= 6'b011000;	//0x20
+					end else if (la_data_in[95:82] == 14'b00000111111111) begin
 						rege[162:82] 	<= la_data_in[81:0];
-					end else if (la_data_in[95:82] == 14'h000A) begin
+						la_data_out[95:90] <= 6'b011001;	//0x24
+					end else if (la_data_in[95:82] == 14'b00001111111111) begin
 						rege[81:0] 		<= la_data_in[80:0];
-					end else if (la_data_in[95:82] == 14'h000B) begin
+						la_data_out[95:90] <= 6'b011010;	//0x28
+					end else if (la_data_in[95:82] == 14'b00011111111111) begin
 						regf[162:82] 	<= la_data_in[81:0];
-					end else if (la_data_in[95:82] == 14'h000C) begin
+						la_data_out[95:90] <= 6'b011011;	//0x2C
+					end else if (la_data_in[95:82] == 14'b00111111111111) begin
 						regf[81:0] 		<= la_data_in[80:0];
-					end else if (la_data_in[95:82] == 14'h000D) begin
+						la_data_out[95:90] <= 6'b011100; 	//0x30
+					end else if (la_data_in[95:82] == 14'b01111111111111) begin
 						regh[162:82] 	<= la_data_in[81:0];
-					end else if (la_data_in[95:82] == 14'h000E) begin
+						la_data_out[95:90] <= 6'b011101;	//0x34
+					end else if (la_data_in[95:82] == 14'b11111111111111) begin
 						regh[81:0] 		<= la_data_in[80:0];
+						la_data_out[95:90] <= 6'b011110;	//0x38
 					end
 				end
 				
@@ -228,22 +242,28 @@ module user_proj_example #(
 					la_data_out <= {(128){1'b0}};
 				end
 
-				read_mode: begin
-                    if (updateRegs) begin
-                        if (count == 16'h0001) begin
-                            la_data_out <= {{(128-BITS){1'b1}}, rega};
-                        end else if (count == 16'h0002)  begin
-                            la_data_out <= {{(128-BITS){1'b1}}, regb};
-                        end
-                            
-                        if (count < 3) begin
-                            count <= count + 1'b1;
-                            read_done <= 1'b0;
-                        end else begin
-                            count <= 1'b0;
-                            read_done <= 1'b1;
-                        end
-                    end
+			read_mode: begin
+                case (la_data_in[31:16]) 
+					16'h0400: begin
+						la_data_out[113:32] 	<= rega[80:0]; 
+						la_data_out[127:114]	<= 14'b11001000000000;
+					end
+
+					16'h0800: begin
+						la_data_out[113:32] 	<= regb[162:81]; 
+						la_data_out[127:114]	<= 14'b110011000000000;
+					end
+
+					16'h0C00: begin
+						la_data_out[113:32] 	<= regb[80:0]; 
+						la_data_out[127:114]	<= 14'b110100000000000;
+					end
+					default: begin
+						la_data_out[113:32] 	<= rega[162:81]; 
+						la_data_out[127:114]	<= 14'b110001000000000;
+					end
+
+				endcase
 					
 				end
 				default: begin
