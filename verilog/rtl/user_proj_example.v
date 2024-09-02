@@ -34,6 +34,7 @@
  *
  *-------------------------------------------------------------
  */
+`include "../../../verilog/rtl/counter.v"
 
 module user_proj_example #(
 	parameter BITS = 16
@@ -71,16 +72,13 @@ module user_proj_example #(
 	// Assuming LA probes [65:64] are for controlling the count clk & reset  
 	assign clk = wb_clk_i;
 	assign rst = wb_rst_i;
-
-	// counter #(
-	// 	.BITS(BITS),
-    //     .DELAY(DELAY)
-    // ) delay (
-	// 	.clk(clk),
-	// 	.reset(rst),
-	// 	.enable(master_write_ena),
-	// 	.done(updateRegs)
-	// );
+	assign slv_done = (current_state == 2'b11) ? 1'b1 : 1'b0;
+	counter delay (
+		.clk(clk),
+		.reset(rst),
+		.enb(master_write_ena),
+		.done(updateRegs)
+	);
 	
 	always @(posedge clk or rst) begin
 		if (rst) 
@@ -89,9 +87,10 @@ module user_proj_example #(
 			current_state <= next_state;
 	end
 
-	always @(la_data_in or read_done) begin
+	always @(la_data_in or read_done or updateRegs) begin
 		case (current_state)
 			idle: begin
+
 				if (la_data_in[31:16] == 16'hAB40) begin
 					next_state <= write_mode;
 				end else begin 
@@ -108,11 +107,11 @@ module user_proj_example #(
 			end
 
 			proc: begin
-				// if (slv_done) begin
-                next_state <= read_mode;
-				// end else begin 
-					// next_state <= proc;
-				// end
+				if (updateRegs == 1'b1) begin
+                	next_state <= read_mode;
+				end else begin 
+					next_state <= proc;
+				end
 			end
 
 			read_mode: begin
@@ -143,15 +142,17 @@ module user_proj_example #(
 			end
 
 			proc: begin
+				master_write_ena <= 1'b1;
 				master_enable <= 1'b1;
 				master_load <= 1'b0;
-                master_write_ena <= 1'b0;
 			end
 
 			read_mode: begin
+				master_write_ena <= 1'b0;
+
 				master_enable <= 1'b0;
 				master_load <= 1'b0;
-                master_write_ena <= ~updateRegs;
+                // master_write_ena <= ~updateRegs;
                 // if (updateRegs) begin
                 //     master_write_ena <= 1'b0;
                 // end begin
@@ -195,77 +196,79 @@ module user_proj_example #(
 				write_mode: begin
 					if (la_data_in[95:82] == 14'b00000000000001) begin
 						rega[162:82] 	<= la_data_in[81:0];
-						la_data_out[95:90] <= 6'b010001; 	//0x04
+						la_data_out[125:122] <= 4'b0001; 	//0x04
 					end else if (la_data_in[95:82] == 14'b00000000000011) begin
 						rega[81:0] 		<= la_data_in[81:1];
-						la_data_out[95:90] <= 6'b010010;	//0x08
+						la_data_out[125:122] <= 4'b0010;	//0x08
 					end else if (la_data_in[95:82] == 14'b00000000000111) begin
 						regb[162:82] 	<= la_data_in[81:0];
-						la_data_out[95:90] <= 6'b010011;	//0x0C
+						la_data_out[125:122] <= 4'b0011;	//0x0C
 					end else if (la_data_in[95:82] == 14'b00000000001111) begin
 						regb[81:0] 		<= la_data_in[80:0];
-						la_data_out[95:90] <= 6'b010100; 	//0x10
+						la_data_out[125:122] <= 4'b0100; 	//0x10
 					end else if (la_data_in[95:82] == 14'b00000000011111) begin
 						regc[162:82] 	<= la_data_in[81:0];
-						la_data_out[95:90] <= 6'b010101;	//0x14
+						la_data_out[125:122] <= 4'b0101;	//0x14
 					end else if (la_data_in[95:82] == 14'b00000000111111) begin
 						regc[81:0] 		<= la_data_in[80:0];
-						la_data_out[95:90] <= 6'b010110;	//0x18
+						la_data_out[125:122] <= 4'b0110;	//0x18
 					end else if (la_data_in[95:82] == 14'b00000001111111) begin
 						regd[162:82] 	<= la_data_in[81:0];
-						la_data_out[95:90] <= 6'b010111;	//0x1C
+						la_data_out[125:122] <= 4'b0111;	//0x1C
 					end else if (la_data_in[95:82] == 14'b00000011111111) begin
 						regd[81:0] 		<= la_data_in[80:0];
-						la_data_out[95:90] <= 6'b011000;	//0x20
+						la_data_out[125:122] <= 4'b1000;	//0x20
 					end else if (la_data_in[95:82] == 14'b00000111111111) begin
 						rege[162:82] 	<= la_data_in[81:0];
-						la_data_out[95:90] <= 6'b011001;	//0x24
+						la_data_out[125:122] <= 4'b1001;	//0x24
 					end else if (la_data_in[95:82] == 14'b00001111111111) begin
 						rege[81:0] 		<= la_data_in[80:0];
-						la_data_out[95:90] <= 6'b011010;	//0x28
+						la_data_out[125:122] <= 4'b1010;	//0x28
 					end else if (la_data_in[95:82] == 14'b00011111111111) begin
 						regf[162:82] 	<= la_data_in[81:0];
-						la_data_out[95:90] <= 6'b011011;	//0x2C
+						la_data_out[125:122] <= 4'b1011;	//0x2C
 					end else if (la_data_in[95:82] == 14'b00111111111111) begin
 						regf[81:0] 		<= la_data_in[80:0];
-						la_data_out[95:90] <= 6'b011100; 	//0x30
+						la_data_out[125:122] <= 4'b1100; 	//0x30
 					end else if (la_data_in[95:82] == 14'b01111111111111) begin
 						regh[162:82] 	<= la_data_in[81:0];
-						la_data_out[95:90] <= 6'b011101;	//0x34
+						la_data_out[125:122] <= 4'b1101;	//0x34
 					end else if (la_data_in[95:82] == 14'b11111111111111) begin
 						regh[81:0] 		<= la_data_in[80:0];
-						la_data_out[95:90] <= 6'b011110;	//0x38
+						la_data_out[127:122] <= 6'b011110;	//0x78
 					end
 				end
 				
 				proc: begin
-					la_data_out <= {(128){1'b0}};
+					la_data_out[127:122] <= 6'b100111;
+					la_data_out[121:0] <= {(122){1'b0}};
 				end
 
-			read_mode: begin
-                case (la_data_in[31:16]) 
-					16'h0400: begin
-						la_data_out[113:32] 	<= rega[80:0]; 
-						la_data_out[127:114]	<= 14'b11001000000000;
-					end
+				read_mode: begin
+					case (la_data_in[31:16]) 
+						16'h0400: begin
+							la_data_out[113:32] 	<= rega[80:0]; 
+							la_data_out[127:114]	<= 14'b11001000000000;
+						end
 
-					16'h0800: begin
-						la_data_out[113:32] 	<= regb[162:81]; 
-						la_data_out[127:114]	<= 14'b110011000000000;
-					end
+						16'h0800: begin
+							la_data_out[113:32] 	<= regb[162:81]; 
+							la_data_out[127:114]	<= 14'b11001100000000;
+						end
 
-					16'h0C00: begin
-						la_data_out[113:32] 	<= regb[80:0]; 
-						la_data_out[127:114]	<= 14'b110100000000000;
-					end
-					default: begin
-						la_data_out[113:32] 	<= rega[162:81]; 
-						la_data_out[127:114]	<= 14'b110001000000000;
-					end
+						16'h0C00: begin
+							la_data_out[113:32] 	<= regb[80:0]; 
+							la_data_out[127:114]	<= 14'b11010000000000;
+						end
+						default: begin
+							la_data_out[113:32] 	<= rega[162:81]; 
+							la_data_out[127:114]	<= 14'b11000100000000;
+						end
 
-				endcase
+					endcase
 					
 				end
+				
 				default: begin
 					rega <= {{(BITS-1){1'b0}}};
 					regb <= {{(BITS-1){1'b0}}};

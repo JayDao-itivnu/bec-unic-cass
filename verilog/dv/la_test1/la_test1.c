@@ -49,38 +49,49 @@ static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg
   // enable sinc3
 	uint32_t becAddres;
 	uint32_t BecStatus 	= reg_la3_data_in & 0x3C000000; //Take 4 bits of becStatus (la3_data_in[29:26])
-	reg_mprj_datal = BecStatus;
-	switch (BecStatus) {
-		// case 0x04000000:
-		// 	becAddres = 0x00040000;
-		case 0x04000000:				// la3_data_in[29:26] = "0001"
-			becAddres = 0x000C0000;
-		case 0x08000000:				// la3_data_in[29:26] = "0010"
-			becAddres = 0x001C0000;
-		case 0x0C000000:				// la3_data_in[29:26] = "0011"
-			becAddres = 0x003C0000;
-		case 0x10000000:				// la3_data_in[29:26] = "0100"
-			becAddres = 0x007C0000;
-		case 0x14000000:				// la3_data_in[29:26] = "0101"
-			becAddres = 0x00FC0000;
-		case 0x18000000:				// la3_data_in[29:26] = "0110"
-			becAddres = 0x01FC0000;
-		case 0x1C000000:				// la3_data_in[29:26] = "0111"
-			becAddres = 0x03FC0000;
-		case 0x20000000:				// la3_data_in[29:26] = "1000"
-			becAddres = 0x07FC0000;
-		case 0x24000000:				// la3_data_in[29:26] = "1001"
-			becAddres = 0x0FFC0000;
-		case 0x28000000:				// la3_data_in[29:26] = "1010"
-			becAddres = 0x1FFC0000;
-		case 0x2C000000:				// la3_data_in[29:26] = "1011"
-			becAddres = 0x3FFC0000;
-		case 0x30000000:				// la3_data_in[29:26] = "1100"
-			becAddres = 0x7FFC0000;
-		case 0x34000000:				// la3_data_in[29:26] = "1101"
-			becAddres = 0xFFFC0000;
-		default:
-			becAddres = 0x00040000;
+
+	if (BecStatus == 0x04000000) {
+		// la3_data_in[29:26] = "0001" --- w1(low)
+		becAddres = 0x000C0000;
+	} else if (BecStatus == 0x08000000) {
+		// la3_data_in[29:26] = "0010" --- z1(high)
+		becAddres = 0x001C0000;
+	} else if (BecStatus == 0x0C000000) {
+		// la3_data_in[29:26] = "0011" --- z1(low)
+		becAddres = 0x003C0000;
+	} else if (BecStatus == 0x10000000) {
+		// la3_data_in[29:26] = "0100" --- w2(high)
+		becAddres = 0x007C0000;
+	} else if (BecStatus == 0x14000000) {
+		// la3_data_in[29:26] = "0101" --- w2(low)
+		becAddres = 0x00FC0000;
+	} else if (BecStatus == 0x18000000) {
+		// la3_data_in[29:26] = "0110" --- z2(high)
+		becAddres = 0x01FC0000;
+	} else if (BecStatus == 0x1C000000) {
+		// la3_data_in[29:26] = "0111" --- z2(low)
+		becAddres = 0x03FC0000;
+	} else if (BecStatus == 0x20000000) {
+		// la3_data_in[29:26] = "1000" --- inv_w0(high)
+		becAddres = 0x07FC0000;
+	} else if (BecStatus == 0x24000000) {
+		// la3_data_in[29:26] = "1001" --- inv_w0(low)
+		becAddres = 0x0FFC0000;
+	} else if (BecStatus == 0x28000000) {
+		// la3_data_in[29:26] = "1010" --- d(high)
+		becAddres = 0x1FFC0000;
+	} else if (BecStatus == 0x2C000000) {
+		// la3_data_in[29:26] = "1011" --- d(low)
+		becAddres = 0x3FFC0000;
+	} else if (BecStatus == 0x30000000) {
+		// la3_data_in[29:26] = "1100" --- key(high)
+		becAddres = 0x7FFC0000;
+	} else if (BecStatus == 0x34000000) {
+		// la3_data_in[29:26] = "1101" --- key(low)
+		becAddres = 0xFFFC0000;
+	} else {
+		// la3_data_in[29:26] = "0001" --- w0(high)
+		becAddres = 0x00040000;	
 	}
 	reg_la2_data = 0;
 	reg_la0_data = data_reg2;
@@ -214,8 +225,9 @@ void main()
 	becState 	= reg_la3_data_in & 0xC0000000;			// First 2-bits of FSM status inside BEC core    
 
 	while (1) {
-		if (becState == 0x40000000) {	// Write Process from Processor to BEC core (la3[31:30] = "01")
-			while (becStatus != 0x38000000) {
+		if ((reg_la3_data_in & 0xC0000000) == 0x40000000) {	// Write Process from Processor to BEC core (la3[31:30] = "01")
+			reg_mprj_datal = 0xAB410000;
+			while (reg_la3_data_in != 0x78000000) {
 			// Writing w1 register
 				write_la(reg_la3_data_in, w1[0], w1[1], w1[2]);
 				write_la(reg_la3_data_in, w1[3], w1[4], w1[5]);
@@ -245,31 +257,36 @@ void main()
 				write_la(reg_la3_data_in, key[3], key[4], key[5]);
 			}
 			reg_la0_data 	=	0xAB410000;
-		} else if (becState == 0x80000000) {
-			// Configure LA probes 2, 1, and 0 [95:0] as inputs to the cpu 
-			// Configure LA probes 3 [127:96] as output from the cpu
-			reg_la0_oenb = reg_la0_iena = 0xFFFFFFFF;  // [31:0]
-			reg_la1_oenb = reg_la1_iena = 0x00000000;  // [63:32]
-			reg_la2_oenb = reg_la2_iena = 0x00000000;  // [95:64]
-			reg_la3_oenb = reg_la3_iena = 0x00000000;  // [127:96]
-			// Inform processer being processing
-			reg_mprj_datal = 0xAB410000;
-
-		} else if (becState == 0xC0000000) {
-			reg_mprj_datal = 0xAB420000;
-			// Inform processer being read from BEC
-			while (becState == 0xC0000000) {
-				read_la(becState, becStatus);
-			}
-		}
-		if (reg_la0_data_in == 0xFFFF000C) {
-			reg_mprj_datal = 0xAB410000;
-		}
-		if (reg_la0_data_in == 0xFFFF000B) {
-			reg_mprj_datal = 0xAB420000;
 			break;
 		}
 	}
+	while (reg_la3_data_in  == 0x9C000000) {
+		// Inform processer being processing
+		reg_mprj_datal = 0xAB420000;
+		// Configure LA probes 2, 1, and 0 [95:0] as inputs to the cpu 
+		// Configure LA probes 3 [127:96] as output from the cpu
+		reg_la0_oenb = reg_la0_iena = 0xFFFFFFFF;  // [31:0]
+		reg_la1_oenb = reg_la1_iena = 0x00000000;  // [63:32]
+		reg_la2_oenb = reg_la2_iena = 0x00000000;  // [95:64]
+		reg_la3_oenb = reg_la3_iena = 0x00000000;  // [127:96]
+	} 
+
+	while ((reg_la3_data_in & 0xC0000000) == 0xC0000000) {
+		reg_mprj_datal = 0xAB430000;
+		break;
+		// Inform processer being read from BEC
+		// while (becState == 0xC0000000) {
+		// 	read_la(becState, becStatus);
+		// }
+	}
+		// if (reg_la0_data_in == 0xFFFF000C) {
+		// 	reg_mprj_datal = 0xAB410000;
+		// }
+		// if (reg_la0_data_in == 0xFFFF000B) {
+		// reg_mprj_datal = 0xAB440000;
+		// break;
+		// }
+	// }
 //	print("\n");
 //	print("Monitor: Test 1 Passed\n\n");	// Makes simulation very long!
 	reg_mprj_datal = 0xAB510000;
