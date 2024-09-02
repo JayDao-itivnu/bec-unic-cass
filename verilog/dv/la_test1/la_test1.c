@@ -21,21 +21,21 @@
 #include <../../../verilog/dv/la_test1/sm_bec_v3_randomKey_spec.h>
 
 
-#define reg_wout_0 	(*(volatile uint32_t*)0x30000004)
-#define reg_wout_1 	(*(volatile uint32_t*)0x30000008)
-#define reg_wout_2 	(*(volatile uint32_t*)0x3000000C)
-#define reg_wout_3 	(*(volatile uint32_t*)0x30000010)
-#define reg_wout_4 	(*(volatile uint32_t*)0x30000014)
-#define reg_wout_5 	(*(volatile uint32_t*)0x30000018)
+// #define reg_wout_0 	(*(volatile uint32_t*)0x30000004)
+// #define reg_wout_1 	(*(volatile uint32_t*)0x30000008)
+// #define reg_wout_2 	(*(volatile uint32_t*)0x3000000C)
+// #define reg_wout_3 	(*(volatile uint32_t*)0x30000010)
+// #define reg_wout_4 	(*(volatile uint32_t*)0x30000014)
+// #define reg_wout_5 	(*(volatile uint32_t*)0x30000018)
 
-#define reg_zout_0 	(*(volatile uint32_t*)0x3000001C)
-#define reg_zout_1 	(*(volatile uint32_t*)0x30000020)
-#define reg_zout_2 	(*(volatile uint32_t*)0x30000024)
-#define reg_zout_3 	(*(volatile uint32_t*)0x30000028)
-#define reg_zout_4 	(*(volatile uint32_t*)0x3000002C)
-#define reg_zout_5 	(*(volatile uint32_t*)0x30000030)
+// #define reg_zout_0 	(*(volatile uint32_t*)0x3000001C)
+// #define reg_zout_1 	(*(volatile uint32_t*)0x30000020)
+// #define reg_zout_2 	(*(volatile uint32_t*)0x30000024)
+// #define reg_zout_3 	(*(volatile uint32_t*)0x30000028)
+// #define reg_zout_4 	(*(volatile uint32_t*)0x3000002C)
+// #define reg_zout_5 	(*(volatile uint32_t*)0x30000030)
 
-#define reg_cpuStatus (*(volatile uint32_t*)0x30000034)
+// #define reg_cpuStatus (*(volatile uint32_t*)0x30000034)
 // --------------------------------------------------------
 
 /*
@@ -46,10 +46,8 @@
 		- Outputs message to the UART when the test concludes successfuly
 */
 static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg1, uint32_t data_reg2) {
-  // enable sinc3
-	uint32_t becAddres;
 	uint32_t BecStatus 	= reg_la3_data_in & 0x3C000000; //Take 4 bits of becStatus (la3_data_in[29:26])
-
+	uint32_t becAddres;
 	if (BecStatus == 0x04000000) {
 		// la3_data_in[29:26] = "0001" --- w1(low)
 		becAddres = 0x000C0000;
@@ -101,46 +99,41 @@ static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg
 	}
 
 
-static uint32_t read_la (uint32_t cpuState, uint32_t becStatus) {
-	switch (becStatus) {
-		case 0x04000000: {
-			reg_wout_0 = reg_la3_data_in & 0x03FFFFFF;
-			reg_wout_1 = reg_la2_data_in;
-			reg_wout_2 = reg_la1_data_in;
-			
-			reg_la0_data = 0x04000000;
-		}
+/*static uint32_t read_la () {
+	uint32_t cpuStatus = reg_la3_data_in & 0xFC000000;
+	if (cpuStatus == 0xC8000000) {
+		// reg_wout_3 = reg_la3_data_in & 0x03FFFFFF;
+		reg_wout_4 = 0x20000000;
+		// reg_wout_5 = reg_la1_data_in;
 
-		case 0x08000000: {
-			reg_wout_3 = reg_la3_data_in & 0x03FFFFFF;
-			reg_wout_4 = reg_la2_data_in;
-			reg_wout_5 = reg_la1_data_in;
+		reg_la0_data = 0x08000000;
+		// break;
+	} else if (cpuStatus == 0xCC000000) {
+		// reg_zout_0 = reg_la3_data_in & 0x03FFFFFF;
+		// reg_zout_1 = reg_la2_data_in;
+		// reg_zout_2 = reg_la1_data_in;
 
-			reg_la0_data = 0x08000000;
-		}
+		reg_la0_data = 0x0C000000;
+	} else if (cpuStatus == 0xD0000000) {
+		// reg_zout_3 = reg_la3_data_in & 0x03FFFFFF;
+		// reg_zout_4 = reg_la2_data_in;
+		// reg_zout_5 = reg_la1_data_in;
 
-		case 0x0C00000: {
-			reg_zout_0 = reg_la3_data_in & 0x03FFFFFF;
-			reg_zout_1 = reg_la2_data_in;
-			reg_zout_2 = reg_la1_data_in;
-
-			reg_la0_data = 0x0C000000;
-		}
-
-		case 0x1000000: {
-			reg_zout_3 = reg_la3_data_in & 0x03FFFFFF;
-			reg_zout_4 = reg_la2_data_in;
-			reg_zout_5 = reg_la1_data_in;
-
-			reg_la0_data = 0x10000000;
-		}
+		reg_la0_data = 0x10000000;
+	} else {
+		// reg_wout_0 = reg_la3_data_in & 0x03FFFFFF;
+		reg_wout_1 = 0x10000000;
+		// reg_wout_2 = reg_la1_data_in;
+		
+		reg_la0_data = 0x04000000;
+		// break;
 	}
-}
+}*/
 
 void main()
 {
 	int j;
-	uint32_t becStatus, becState;
+	uint32_t becStatus, becState, reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5;
 	/* Set up the housekeeping SPI to be connected internally so	*/
 	/* that external pin changes don't affect it.			*/
 
@@ -263,22 +256,50 @@ void main()
 	while (reg_la3_data_in  == 0x9C000000) {
 		// Inform processer being processing
 		reg_mprj_datal = 0xAB420000;
-		// Configure LA probes 2, 1, and 0 [95:0] as inputs to the cpu 
-		// Configure LA probes 3 [127:96] as output from the cpu
+		// Configure LA probes 0 [31:0] as inputs to the cpu 
+		// Configure LA probes 3, 2, and 1 [127:32] as output from the cpu
 		reg_la0_oenb = reg_la0_iena = 0xFFFFFFFF;  // [31:0]
 		reg_la1_oenb = reg_la1_iena = 0x00000000;  // [63:32]
 		reg_la2_oenb = reg_la2_iena = 0x00000000;  // [95:64]
 		reg_la3_oenb = reg_la3_iena = 0x00000000;  // [127:96]
 	} 
-
+	reg_mprj_datal = 0xAB510000;
 	while ((reg_la3_data_in & 0xC0000000) == 0xC0000000) {
-		reg_mprj_datal = 0xAB430000;
-		break;
-		// Inform processer being read from BEC
-		// while (becState == 0xC0000000) {
-		// 	read_la(becState, becStatus);
-		// }
+		if ((reg_la3_data_in & 0xFF000000) == 0xC8000000) {
+			reg_wout_3 = reg_la3_data_in & 0x03FFFFFF;
+			reg_wout_4 = reg_la2_data_in;
+			reg_wout_5 = reg_la1_data_in;
+
+			reg_la0_data = 0x08000000;
+		} else if ((reg_la3_data_in & 0xFF000000) == 0xCC000000) {
+			reg_zout_0 = reg_la3_data_in & 0x03FFFFFF;
+			reg_zout_1 = reg_la2_data_in;
+			reg_zout_2 = reg_la1_data_in;
+
+			reg_la0_data = 0x0C000000;
+		} else if ((reg_la3_data_in & 0xFF000000) == 0xD0000000) {
+			reg_zout_3 = reg_la3_data_in & 0x03FFFFFF;
+			reg_zout_4 = reg_la2_data_in;
+			reg_zout_5 = reg_la1_data_in;
+
+			reg_la0_data = 0x10000000;
+		} else {
+			reg_wout_0 = reg_la3_data_in & 0x03FFFFFF;
+			reg_wout_1 = reg_la2_data_in;
+			reg_wout_2 = reg_la1_data_in;
+			
+			reg_la0_data = 0x04000000;
+		}
 	}
+
+		if (reg_wout_1 == w1[1]){
+			reg_mprj_datal = 0xAB430000;
+		} else {
+			reg_mprj_datal = 0xAB440000;
+		}
+		// Inform processer being read from BEC
+		
+	
 		// if (reg_la0_data_in == 0xFFFF000C) {
 		// 	reg_mprj_datal = 0xAB410000;
 		// }

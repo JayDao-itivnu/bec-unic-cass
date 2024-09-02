@@ -140,7 +140,7 @@ module la_test1_tb;
 		$dumpvars(0, la_test1_tb);
 
 		// Repeat cycles of 1000 clock edges as needed to complete testbench
-		repeat (400) begin
+		repeat (800) begin
 			repeat (1000) @(posedge clock);
 			// $display("+1000 cycles");
 		end
@@ -162,10 +162,14 @@ module la_test1_tb;
 		$display("LA Test 1 read data");
 		wait(checkbits == 16'hAB42);
 		$display("LA Test 1 processing");
-		wait(checkbits == 16'hAB43);
-		$display("LA Test 1 write data to processor");
-		// wait(checkbits == 16'hAB44);
-		// $display("LA Test 1 write data done");
+		wait(checkbits == 16'hAB51);
+		$display("LA Test 1 writing data to processor ...");
+		wait(checkbits != 16'hAB51);
+		if (checkbits == 16'hAB43) begin
+			$display("LA Test 1 write data done");
+		end else if (checkbits == 16'hAB44) begin
+			$display("LA Test 1 write data failed");
+		end
 		wait(checkbits == 16'hAB51);
 		$display("LA Test 1 done");
 		#10000;

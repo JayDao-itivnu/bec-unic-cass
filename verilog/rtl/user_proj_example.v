@@ -115,7 +115,7 @@ module user_proj_example #(
 			end
 
 			read_mode: begin
-				if (read_done) begin
+				if (la_data_in[31:16] == 16'h1000) begin
 					next_state <= idle;
 				end else begin
 					next_state <= read_mode;

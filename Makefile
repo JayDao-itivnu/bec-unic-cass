@@ -201,7 +201,7 @@ what:
 # Install Openlane
 .PHONY: openlane
 openlane:
-	@if [ "$$(realpath $${OPENLANE_ROOT})" = "$$(realpath $$(pwd)/openlane)" ]; then\
+	@if [ "$(realpath ${OPENLANE_ROOT})" = "$(realpath $(PWD)/openlane)" ]; then\
 		echo "OPENLANE_ROOT is set to '$$(pwd)/openlane' which contains openlane config files"; \
 		echo "Please set it to a different directory"; \
 		exit 1; \
