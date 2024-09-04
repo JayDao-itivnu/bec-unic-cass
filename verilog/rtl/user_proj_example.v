@@ -55,7 +55,7 @@ module user_proj_example #(
 );
 	wire clk;
 	wire rst;
-	reg master_enable, master_load, master_write_ena;
+	reg master_enable, master_load, master_write_ena, enable_proc, enable_write;
 	wire slv_done, updateRegs;
 	wire [BITS-1:0] la_write;
 	parameter DELAY = 2000;
@@ -90,8 +90,7 @@ module user_proj_example #(
 	always @(la_data_in or read_done or updateRegs) begin
 		case (current_state)
 			idle: begin
-
-				if (la_data_in[31:16] == 16'hAB40) begin
+				if (enable_write == 1'b1) begin
 					next_state <= write_mode;
 				end else begin 
 					next_state <= idle;
@@ -99,7 +98,7 @@ module user_proj_example #(
 			end
 
 			write_mode: begin
-				if (la_data_in[31:16] == 16'hAB41) begin
+				if (enable_proc == 1'b1) begin
 					next_state <= proc;
 				end else begin 
 					next_state <= write_mode;
@@ -115,7 +114,7 @@ module user_proj_example #(
 			end
 
 			read_mode: begin
-				if (la_data_in[31:16] == 16'h1000) begin
+				if (read_done == 1'b1) begin
 					next_state <= idle;
 				end else begin
 					next_state <= read_mode;
@@ -191,9 +190,26 @@ module user_proj_example #(
 					regh <= 0;
 					read_done <= 1'b0;
 					la_data_out[127:122] <= 6'b010000; 
+					/* 
+					When process being busy (la_data_in[15:0] == 16'hFFFF), 
+					BEC core automatically continues processing the existence data
+					*/
+					if (la_data_in[15:0] == 16'hFFFF) begin			// Enable Full-load Processing
+						enable_write <= 1'h1;
+					end else if (la_data_in[31:16] == 16'hAB40) begin
+						enable_write <= 1'h1;
+					end else 
+						enable_write <= 1'h0;
 				end 
 
 				write_mode: begin
+					if (la_data_in[15:0] == 16'hFFFF) begin			// Enable Full-load Processing
+						enable_proc <= 1'h1;
+					end else if (la_data_in[31:16] == 16'hAB41) begin
+						enable_proc <= 1'h1;
+					end else 
+						enable_proc <= 1'h0;
+
 					if (la_data_in[95:82] == 14'b00000000000001) begin
 						rega[162:82] 	<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b0001; 	//0x04
@@ -245,6 +261,12 @@ module user_proj_example #(
 				end
 
 				read_mode: begin
+					if (la_data_in[15:0] == 16'hFFFF) begin
+						read_done <= 1'h1;
+					end else if (la_data_in[31:16] == 16'hAB40) begin
+						read_done <= 1'h1;
+					end else 
+						enable_write <= 1'h0;
 					case (la_data_in[31:16]) 
 						16'h0400: begin
 							la_data_out[113:32] 	<= rega[80:0]; 

@@ -18,184 +18,48 @@
 // This include is relative to $CARAVEL_PATH (see Makefile)
 #include <defs.h>
 #include <stub.c>
-#include <../../../verilog/dv/la_test1/sm_bec_v3_randomKey_spec.h>
-
-
-// #define reg_wout_0 	(*(volatile uint32_t*)0x30000004)
-// #define reg_wout_1 	(*(volatile uint32_t*)0x30000008)
-// #define reg_wout_2 	(*(volatile uint32_t*)0x3000000C)
-// #define reg_wout_3 	(*(volatile uint32_t*)0x30000010)
-// #define reg_wout_4 	(*(volatile uint32_t*)0x30000014)
-// #define reg_wout_5 	(*(volatile uint32_t*)0x30000018)
-
-// #define reg_zout_0 	(*(volatile uint32_t*)0x3000001C)
-// #define reg_zout_1 	(*(volatile uint32_t*)0x30000020)
-// #define reg_zout_2 	(*(volatile uint32_t*)0x30000024)
-// #define reg_zout_3 	(*(volatile uint32_t*)0x30000028)
-// #define reg_zout_4 	(*(volatile uint32_t*)0x3000002C)
-// #define reg_zout_5 	(*(volatile uint32_t*)0x30000030)
-
-// #define reg_cpuStatus (*(volatile uint32_t*)0x30000034)
-// --------------------------------------------------------
-
-/*
-	MPRJ Logic Analyzer Test:
-		- Observes counter value through LA probes [31:0] 
-		- Sets counter initial value through LA probes [63:32]
-		- Flags when counter value exceeds 500 through the management SoC gpio
-		- Outputs message to the UART when the test concludes successfuly
-*/
-static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg1, uint32_t data_reg2) {
-	uint32_t BecStatus 	= reg_la3_data_in & 0x3C000000; //Take 4 bits of becStatus (la3_data_in[29:26])
-	uint32_t becAddres;
-	if (BecStatus == 0x04000000) {
-		// la3_data_in[29:26] = "0001" --- w1(low)
-		becAddres = 0x000C0000;
-	} else if (BecStatus == 0x08000000) {
-		// la3_data_in[29:26] = "0010" --- z1(high)
-		becAddres = 0x001C0000;
-	} else if (BecStatus == 0x0C000000) {
-		// la3_data_in[29:26] = "0011" --- z1(low)
-		becAddres = 0x003C0000;
-	} else if (BecStatus == 0x10000000) {
-		// la3_data_in[29:26] = "0100" --- w2(high)
-		becAddres = 0x007C0000;
-	} else if (BecStatus == 0x14000000) {
-		// la3_data_in[29:26] = "0101" --- w2(low)
-		becAddres = 0x00FC0000;
-	} else if (BecStatus == 0x18000000) {
-		// la3_data_in[29:26] = "0110" --- z2(high)
-		becAddres = 0x01FC0000;
-	} else if (BecStatus == 0x1C000000) {
-		// la3_data_in[29:26] = "0111" --- z2(low)
-		becAddres = 0x03FC0000;
-	} else if (BecStatus == 0x20000000) {
-		// la3_data_in[29:26] = "1000" --- inv_w0(high)
-		becAddres = 0x07FC0000;
-	} else if (BecStatus == 0x24000000) {
-		// la3_data_in[29:26] = "1001" --- inv_w0(low)
-		becAddres = 0x0FFC0000;
-	} else if (BecStatus == 0x28000000) {
-		// la3_data_in[29:26] = "1010" --- d(high)
-		becAddres = 0x1FFC0000;
-	} else if (BecStatus == 0x2C000000) {
-		// la3_data_in[29:26] = "1011" --- d(low)
-		becAddres = 0x3FFC0000;
-	} else if (BecStatus == 0x30000000) {
-		// la3_data_in[29:26] = "1100" --- key(high)
-		becAddres = 0x7FFC0000;
-	} else if (BecStatus == 0x34000000) {
-		// la3_data_in[29:26] = "1101" --- key(low)
-		becAddres = 0xFFFC0000;
-	} else {
-		// la3_data_in[29:26] = "0001" --- w0(high)
-		becAddres = 0x00040000;	
-	}
-	reg_la2_data = 0;
-	reg_la0_data = data_reg2;
-	reg_la1_data = data_reg1;
-	reg_la2_data = becAddres ^ data_reg0;
-
-	}
-
-
-/*static uint32_t read_la () {
-	uint32_t cpuStatus = reg_la3_data_in & 0xFC000000;
-	if (cpuStatus == 0xC8000000) {
-		// reg_wout_3 = reg_la3_data_in & 0x03FFFFFF;
-		reg_wout_4 = 0x20000000;
-		// reg_wout_5 = reg_la1_data_in;
-
-		reg_la0_data = 0x08000000;
-		// break;
-	} else if (cpuStatus == 0xCC000000) {
-		// reg_zout_0 = reg_la3_data_in & 0x03FFFFFF;
-		// reg_zout_1 = reg_la2_data_in;
-		// reg_zout_2 = reg_la1_data_in;
-
-		reg_la0_data = 0x0C000000;
-	} else if (cpuStatus == 0xD0000000) {
-		// reg_zout_3 = reg_la3_data_in & 0x03FFFFFF;
-		// reg_zout_4 = reg_la2_data_in;
-		// reg_zout_5 = reg_la1_data_in;
-
-		reg_la0_data = 0x10000000;
-	} else {
-		// reg_wout_0 = reg_la3_data_in & 0x03FFFFFF;
-		reg_wout_1 = 0x10000000;
-		// reg_wout_2 = reg_la1_data_in;
-		
-		reg_la0_data = 0x04000000;
-		// break;
-	}
-}*/
+#include <../../../verilog/dv/la_test1/io_la.c>
 
 void main()
 {
 	int j;
-	uint32_t becStatus, becState, reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5;
-	/* Set up the housekeeping SPI to be connected internally so	*/
-	/* that external pin changes don't affect it.			*/
+	uint32_t reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5, cpuStatus;
 
-	// reg_spi_enable = 1;
-	// reg_spimaster_cs = 0x00000;
+	reg_mprj_io_31 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_30 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_29 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_28 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_27 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_26 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_25 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_24 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_23 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_22 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_21 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_20 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_19 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_18 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_17 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_16 = GPIO_MODE_MGMT_STD_OUTPUT;
 
-	// reg_spimaster_control = 0x0801;
+	reg_mprj_io_15 = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_14 = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_13 = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_12 = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_11 = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_10 = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_9  = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_8  = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_7  = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_5  = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_4  = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_3  = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_2  = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_1  = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_0  = GPIO_MODE_USER_STD_OUTPUT;
 
-	// reg_spimaster_control = 0xa002;	// Enable, prescaler = 2,
-										// connect to housekeeping SPI
+	reg_mprj_io_6  = GPIO_MODE_MGMT_STD_OUTPUT;
 
-	// Connect the housekeeping SPI to the SPI master
-	// so that the CSB line is not left floating.  This allows
-	// all of the GPIO pins to be used for user functions.
-
-	// The upper GPIO pins are configured to be output
-	// and accessble to the management SoC.
-	// Used to flad the start/end of a test 
-	// The lower GPIO pins are configured to be output
-	// and accessible to the user project.  They show
-	// the project count value, although this test is
-	// designed to read the project count through the
-	// logic analyzer probes.
-	// I/O 6 is configured for the UART Tx line
-
-		reg_mprj_io_31 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_30 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_29 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_28 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_27 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_26 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_25 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_24 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_23 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_22 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_21 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_20 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_19 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_18 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_17 = GPIO_MODE_MGMT_STD_OUTPUT;
-		reg_mprj_io_16 = GPIO_MODE_MGMT_STD_OUTPUT;
-
-		reg_mprj_io_15 = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_14 = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_13 = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_12 = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_11 = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_10 = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_9  = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_8  = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_7  = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_5  = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_4  = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_3  = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_2  = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_1  = GPIO_MODE_USER_STD_OUTPUT;
-		reg_mprj_io_0  = GPIO_MODE_USER_STD_OUTPUT;
-
-		reg_mprj_io_6  = GPIO_MODE_MGMT_STD_OUTPUT;
-
-	// Set UART clock to 64 kbaud (enable before I/O configuration)
-	// reg_uart_clkdiv = 625;
 	reg_uart_enable = 1;
 
 	// Now, apply the configuration
@@ -210,105 +74,38 @@ void main()
 	reg_la3_oenb = reg_la3_iena = 0x00000000;    // [127:96]
 
 	// Flag start of the test 
-	reg_mprj_datal	=	0xAB400000;
-	reg_la0_data 	=	0xAB400000;
+	reg_mprj_datal	=	reg_la0_data = 0xAB400000;
+	cpuStatus = 0x00000000; 	// Processor is ready
 
-	// Configure BEC Status Notifications [127:122]
-	becStatus 	= reg_la3_data_in & 0x3C000000;			// Next 4-bits of addresses inside BEC core
-	becState 	= reg_la3_data_in & 0xC0000000;			// First 2-bits of FSM status inside BEC core    
-
-	while (1) {
-		if ((reg_la3_data_in & 0xC0000000) == 0x40000000) {	// Write Process from Processor to BEC core (la3[31:30] = "01")
+	for (int i = 0; i< 10; i++){
+		while ((reg_la3_data_in & 0xC0000000) == 0x40000000) {
+			// Write Process from Processor to BEC core (la3[31:30] = "01")
 			reg_mprj_datal = 0xAB410000;
-			while (reg_la3_data_in != 0x78000000) {
-			// Writing w1 register
-				write_la(reg_la3_data_in, w1[0], w1[1], w1[2]);
-				write_la(reg_la3_data_in, w1[3], w1[4], w1[5]);
-
-				// Writing z1 register
-				write_la(reg_la3_data_in, z1[0], z1[1], z1[2]);
-				write_la(reg_la3_data_in, z1[3], z1[4], z1[5]);
-
-				// Writing w2 register
-				write_la(reg_la3_data_in, w2[0], w2[1], w2[2]);
-				write_la(reg_la3_data_in, w2[3], w2[4], w2[5]);
-
-				// Writing z2 register
-				write_la(reg_la3_data_in, z2[0], z2[1], z2[2]);
-				write_la(reg_la3_data_in, z2[3], z2[4], z2[5]);
-
-				// Writing inv_w0 register
-				write_la(reg_la3_data_in, inv_w0[0], inv_w0[1], inv_w0[2]);
-				write_la(reg_la3_data_in, inv_w0[3], inv_w0[4], inv_w0[5]);
-
-				// Writing d register
-				write_la(reg_la3_data_in, d[0], d[1], d[2]);
-				write_la(reg_la3_data_in, d[3], d[4], d[5]);
-
-				// Writing key register
-				write_la(reg_la3_data_in, key[0], key[1], key[2]);
-				write_la(reg_la3_data_in, key[3], key[4], key[5]);
-			}
-			reg_la0_data 	=	0xAB410000;
+			write_data(i);
+			reg_la0_data 	=	0xAB410000 ^ cpuStatus;
 			break;
 		}
-	}
-	while (reg_la3_data_in  == 0x9C000000) {
-		// Inform processer being processing
-		reg_mprj_datal = 0xAB420000;
-		// Configure LA probes 0 [31:0] as inputs to the cpu 
-		// Configure LA probes 3, 2, and 1 [127:32] as output from the cpu
-		reg_la0_oenb = reg_la0_iena = 0xFFFFFFFF;  // [31:0]
-		reg_la1_oenb = reg_la1_iena = 0x00000000;  // [63:32]
-		reg_la2_oenb = reg_la2_iena = 0x00000000;  // [95:64]
-		reg_la3_oenb = reg_la3_iena = 0x00000000;  // [127:96]
-	} 
-	reg_mprj_datal = 0xAB510000;
-	while ((reg_la3_data_in & 0xC0000000) == 0xC0000000) {
-		if ((reg_la3_data_in & 0xFF000000) == 0xC8000000) {
-			reg_wout_3 = reg_la3_data_in & 0x03FFFFFF;
-			reg_wout_4 = reg_la2_data_in;
-			reg_wout_5 = reg_la1_data_in;
-
-			reg_la0_data = 0x08000000;
-		} else if ((reg_la3_data_in & 0xFF000000) == 0xCC000000) {
-			reg_zout_0 = reg_la3_data_in & 0x03FFFFFF;
-			reg_zout_1 = reg_la2_data_in;
-			reg_zout_2 = reg_la1_data_in;
-
-			reg_la0_data = 0x0C000000;
-		} else if ((reg_la3_data_in & 0xFF000000) == 0xD0000000) {
-			reg_zout_3 = reg_la3_data_in & 0x03FFFFFF;
-			reg_zout_4 = reg_la2_data_in;
-			reg_zout_5 = reg_la1_data_in;
-
-			reg_la0_data = 0x10000000;
-		} else {
-			reg_wout_0 = reg_la3_data_in & 0x03FFFFFF;
-			reg_wout_1 = reg_la2_data_in;
-			reg_wout_2 = reg_la1_data_in;
-			
-			reg_la0_data = 0x04000000;
+		while (reg_la3_data_in  == 0x9C000000) {
+			// Inform processer being processing
+			reg_mprj_datal = 0xAB420000;
+			// Configure LA probes 0 [31:0] as inputs to the cpu 
+			// Configure LA probes 3, 2, and 1 [127:32] as output from the cpu
+			reg_la0_oenb = reg_la0_iena = 0xFFFFFFFF;  // [31:0]
+			reg_la1_oenb = reg_la1_iena = 0x00000000;  // [63:32]
+			reg_la2_oenb = reg_la2_iena = 0x00000000;  // [95:64]
+			reg_la3_oenb = reg_la3_iena = 0x00000000;  // [127:96]
 		}
-	}
-
+		cpuStatus = 0x0000FFFF;
+		reg_mprj_datal = 0xAB510000;
+		reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5 = read_data(cpuStatus);
+		
 		if (reg_wout_1 == w1[1]){
 			reg_mprj_datal = 0xAB430000;
 		} else {
 			reg_mprj_datal = 0xAB440000;
 		}
-		// Inform processer being read from BEC
-		
-	
-		// if (reg_la0_data_in == 0xFFFF000C) {
-		// 	reg_mprj_datal = 0xAB410000;
-		// }
-		// if (reg_la0_data_in == 0xFFFF000B) {
-		// reg_mprj_datal = 0xAB440000;
-		// break;
-		// }
-	// }
-//	print("\n");
-//	print("Monitor: Test 1 Passed\n\n");	// Makes simulation very long!
-	reg_mprj_datal = 0xAB510000;
+		reg_la0_data = 0x00000000;
+		// reg_mprj_datal = 0xAB510000;
+	}
+	reg_mprj_datal = 0xABFF0000;
 }
