@@ -143,7 +143,7 @@ module user_proj_example #(
 				master_enable <= 1'b0;
 				master_load <= 1'b1;
                 master_write_ena <= 1'b0;
-				if (la_data_in[125] | la_data_in[124] | la_data_in[123] | la_data_in[122] == 1'b1) begin
+				if ((la_data_in[125] | la_data_in[124] | la_data_in[123] | la_data_in[122])) begin
 					cpuStatus = 1'b1;
 				end else begin
 					cpuStatus = 1'b0;
@@ -215,7 +215,9 @@ module user_proj_example #(
 				end 
 
 				write_mode: begin
-					if (la_data_in[15:0] == 16'hFFFF) begin			// Enable Full-load Processing
+					// Enable Full-load Processing
+					if (la_data_in[15:0] == 16'hFFFF) begin		
+						// Processor informs being busy	
 						enable_proc <= 1'h1;
 					end else if (la_data_in[31:16] == 16'hAB41) begin
 						enable_proc <= 1'h1;
@@ -273,35 +275,32 @@ module user_proj_example #(
 				end
 
 				read_mode: begin
-					// if (la_data_in[15:0] == 16'hFFFF) begin
-					// 	read_done <= 1'h1;
-					// end else 
-					if (la_data_in[31:16] == 16'hAB40) begin
+					if (la_data_in[15:0] == 16'hFFFF) begin
 						read_done <= 1'h1;
-					end else 
-						enable_write <= 1'h0;
-					case (la_data_in[31:16]) 
-						16'h0400: begin
-							la_data_out[113:32] 	<= rega[80:0]; 
-							la_data_out[127:114]	<= 14'b11001000000000;
-						end
+					end 
+					if (la_data_in[31:0] == 32'hAB400000) begin
+						case (la_data_in[31:16]) 
+							16'h0400: begin
+								la_data_out[113:32] 	<= rega[80:0]; 
+								la_data_out[127:114]	<= 14'b11001000000000;
+							end
 
-						16'h0800: begin
-							la_data_out[113:32] 	<= regb[162:81]; 
-							la_data_out[127:114]	<= 14'b11001100000000;
-						end
+							16'h0800: begin
+								la_data_out[113:32] 	<= regb[162:81]; 
+								la_data_out[127:114]	<= 14'b11001100000000;
+							end
 
-						16'h0C00: begin
-							la_data_out[113:32] 	<= regb[80:0]; 
-							la_data_out[127:114]	<= 14'b11010000000000;
-						end
-						default: begin
-							la_data_out[113:32] 	<= rega[162:81]; 
-							la_data_out[127:114]	<= 14'b11000100000000;
-						end
-
-					endcase
-					
+							16'h0C00: begin
+								la_data_out[113:32] 	<= regb[80:0]; 
+								la_data_out[127:114]	<= 14'b11010000000000;
+							end
+							default: begin
+								la_data_out[113:32] 	<= rega[162:81]; 
+								la_data_out[127:114]	<= 14'b11000100000000;
+							end
+						
+						endcase
+					end
 				end
 				
 				default: begin

@@ -58,32 +58,32 @@ static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg
 static uint32_t write_data (int i) {
   while (reg_la3_data_in != 0x78000000) {
 	// Writing w1 register
-	write_la(reg_la3_data_in, w1[0], w1[1], w1[2]);
-	write_la(reg_la3_data_in, w1[3], w1[4], w1[5]);
+	write_la(reg_la3_data_in, w1[i*3 + 0], w1[i*3 + 1], w1[i*3 + 2]);
+	write_la(reg_la3_data_in, w1[i*3 + 3], w1[i*3 + 4], w1[i*3 + 5]);
 
 	// Writing z1 register
-	write_la(reg_la3_data_in, z1[0], z1[1], z1[2]);
-	write_la(reg_la3_data_in, z1[3], z1[4], z1[5]);
+	write_la(reg_la3_data_in, z1[i*3 + 0], z1[i*3 + 1], z1[i*3 + 2]);
+	write_la(reg_la3_data_in, z1[i*3 + 3], z1[i*3 + 4], z1[i*3 + 5]);
 
 	// Writing w2 register
-	write_la(reg_la3_data_in, w2[0], w2[1], w2[2]);
-	write_la(reg_la3_data_in, w2[3], w2[4], w2[5]);
+	write_la(reg_la3_data_in, w2[i*3 + 0], w2[i*3 + 1], w2[i*3 + 2]);
+	write_la(reg_la3_data_in, w2[i*3 + 3], w2[i*3 + 4], w2[i*3 + 5]);
 
 	// Writing z2 register
-	write_la(reg_la3_data_in, z2[0], z2[1], z2[2]);
-	write_la(reg_la3_data_in, z2[3], z2[4], z2[5]);
+	write_la(reg_la3_data_in, z2[i*3 + 0], z2[i*3 + 1], z2[i*3 + 2]);
+	write_la(reg_la3_data_in, z2[i*3 + 3], z2[i*3 + 4], z2[i*3 + 5]);
 
 	// Writing inv_w0 register
-	write_la(reg_la3_data_in, inv_w0[0], inv_w0[1], inv_w0[2]);
-	write_la(reg_la3_data_in, inv_w0[3], inv_w0[4], inv_w0[5]);
+	write_la(reg_la3_data_in, inv_w0[i*3 + 0], inv_w0[i*3 + 1], inv_w0[i*3 + 2]);
+	write_la(reg_la3_data_in, inv_w0[i*3 + 3], inv_w0[i*3 + 4], inv_w0[i*3 + 5]);
 
 	// Writing d register
-	write_la(reg_la3_data_in, d[0], d[1], d[2]);
-	write_la(reg_la3_data_in, d[3], d[4], d[5]);
+	write_la(reg_la3_data_in, d[i*3 + 0], d[i*3 + 1], d[i*3 + 2]);
+	write_la(reg_la3_data_in, d[i*3 + 3], d[i*3 + 4], d[i*3 + 5]);
 
 	// Writing key register
-	write_la(reg_la3_data_in, key[0], key[1], key[2]);
-	write_la(reg_la3_data_in, key[3], key[4], key[5]);
+	write_la(reg_la3_data_in, key[i*3 + 0], key[i*3 + 1], key[i*3 + 2]);
+	write_la(reg_la3_data_in, key[i*3 + 3], key[i*3 + 4], key[i*3 + 5]);
 	}
 }
 
