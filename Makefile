@@ -109,7 +109,7 @@ install:
 # Install DV setup
 .PHONY: simenv
 simenv:
-	docker pull efabless/dv:latest
+	# docker pull efabless/dv:latest
 
 # Install cocotb docker
 .PHONY: simenv-cocotb

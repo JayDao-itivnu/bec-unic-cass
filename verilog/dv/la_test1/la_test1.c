@@ -42,14 +42,14 @@ void main()
 	reg_mprj_io_17 = GPIO_MODE_MGMT_STD_OUTPUT;
 	reg_mprj_io_16 = GPIO_MODE_MGMT_STD_OUTPUT;
 
-	reg_mprj_io_15 = GPIO_MODE_USER_STD_OUTPUT;
-	reg_mprj_io_14 = GPIO_MODE_USER_STD_OUTPUT;
-	reg_mprj_io_13 = GPIO_MODE_USER_STD_OUTPUT;
-	reg_mprj_io_12 = GPIO_MODE_USER_STD_OUTPUT;
-	reg_mprj_io_11 = GPIO_MODE_USER_STD_OUTPUT;
-	reg_mprj_io_10 = GPIO_MODE_USER_STD_OUTPUT;
-	reg_mprj_io_9  = GPIO_MODE_USER_STD_OUTPUT;
-	reg_mprj_io_8  = GPIO_MODE_USER_STD_OUTPUT;
+	reg_mprj_io_15 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_14 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_13 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_12 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_11 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_10 = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_9  = GPIO_MODE_MGMT_STD_OUTPUT;
+	reg_mprj_io_8  = GPIO_MODE_MGMT_STD_OUTPUT;
 	reg_mprj_io_7  = GPIO_MODE_USER_STD_OUTPUT;
 	reg_mprj_io_5  = GPIO_MODE_USER_STD_OUTPUT;
 	reg_mprj_io_4  = GPIO_MODE_USER_STD_OUTPUT;
@@ -77,17 +77,18 @@ void main()
 	reg_mprj_datal	=	reg_la0_data = 0xAB400000;
 	cpuStatus = 0x00000000; 	// Processor is ready
 
-	for (int i = 0; i< 10; i++){
+	for (uint32_t i = 0; i< 10; i++){
 		while ((reg_la3_data_in & 0xC0000000) == 0x40000000) {
 			// Write Process from Processor to BEC core (la3[31:30] = "01")
-			reg_mprj_datal = 0xAB410000;
+			cpuStatus = 0x0000FFFF;
+			reg_mprj_datal = 0xAB410000 ^ (i << 8);
 			write_data(i);
 			reg_la0_data 	=	0xAB410000 ^ cpuStatus;
 			break;
 		}
 		while (reg_la3_data_in  == 0x9C000000) {
 			// Inform processer being processing
-			reg_mprj_datal = 0xAB420000;
+			reg_mprj_datal = 0xAB420000 ^ (i << 8);
 			// Configure LA probes 0 [31:0] as inputs to the cpu 
 			// Configure LA probes 3, 2, and 1 [127:32] as output from the cpu
 			reg_la0_oenb = reg_la0_iena = 0xFFFFFFFF;  // [31:0]
@@ -95,16 +96,16 @@ void main()
 			reg_la2_oenb = reg_la2_iena = 0x00000000;  // [95:64]
 			reg_la3_oenb = reg_la3_iena = 0x00000000;  // [127:96]
 		}
-		cpuStatus = 0x0000FFFF;
-		reg_mprj_datal = 0xAB510000;
+		// cpuStatus = 0x0000FFFF;
+		reg_mprj_datal = 0xAB510000 ^ (i << 8);
 		reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5 = read_data(cpuStatus);
 		
 		if (reg_wout_1 == w1[1]){
-			reg_mprj_datal = 0xAB430000;
+			reg_mprj_datal = 0xAB430000 ^ (i << 8);
 		} else {
-			reg_mprj_datal = 0xAB440000;
+			reg_mprj_datal = 0xAB440000 ^ (i << 8);
 		}
-		reg_la0_data = 0x00000000;
+		reg_la0_data = 0x00000000 ^ cpuStatus;
 		// reg_mprj_datal = 0xAB510000;
 	}
 	reg_mprj_datal = 0xABFF0000;

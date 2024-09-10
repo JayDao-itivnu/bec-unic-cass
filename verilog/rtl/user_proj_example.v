@@ -65,10 +65,11 @@ module user_proj_example #(
 	reg [1:0]current_state, next_state;
 	parameter idle=2'b00, write_mode=2'b01, proc=2'b11, read_mode=2'b10;
 	reg master_start, read_done, master_read;
-
+	reg cpuStatus;
 	// Assuming LA probes [63:32] are for controlling the count register  
 	assign la_write = ~la_oenb[63:64-BITS];
-
+	// Assumming cpuStatus 
+	// assign cpuStatus = (la_data_in[15:0] == 16'hFFFF |) ? 1'b1 : (la_data_in[125] | la_data_in[124] | la_data_in[123] | la_data_in[122]);
 	// Assuming LA probes [65:64] are for controlling the count clk & reset  
 	assign clk = wb_clk_i;
 	assign rst = wb_rst_i;
@@ -132,12 +133,21 @@ module user_proj_example #(
 				master_enable <= 1'b0;
 				master_load <= 1'b0;
                 master_write_ena <= 1'b0;
+				if (la_data_in[15:0] == 16'hFFFF ) 
+					cpuStatus = 1'b1;
+				else
+					cpuStatus = 1'b0;
 			end 
 
 			write_mode: begin
 				master_enable <= 1'b0;
 				master_load <= 1'b1;
                 master_write_ena <= 1'b0;
+				if (la_data_in[125] | la_data_in[124] | la_data_in[123] | la_data_in[122] == 1'b1) begin
+					cpuStatus = 1'b1;
+				end else begin
+					cpuStatus = 1'b0;
+				end
 			end
 
 			proc: begin
@@ -151,18 +161,20 @@ module user_proj_example #(
 
 				master_enable <= 1'b0;
 				master_load <= 1'b0;
-                // master_write_ena <= ~updateRegs;
-                // if (updateRegs) begin
-                //     master_write_ena <= 1'b0;
-                // end begin
-                //     master_write_ena <= 1'b1;
-                // end
+				if (la_data_in[15:0] == 16'hFFFF ) 
+					cpuStatus = 1'b1;
+				else
+					cpuStatus = 1'b0;
                 
 			end
 			default: begin
 				master_enable <= 1'b0;
 				master_load <= 1'b0;
                 master_write_ena <= 1'b0;
+				if (la_data_in[15:0] == 16'hFFFF ) 
+					cpuStatus = 1'b1;
+				else
+					cpuStatus = 1'b0;
 			end 
 		endcase 
 	end
@@ -261,9 +273,10 @@ module user_proj_example #(
 				end
 
 				read_mode: begin
-					if (la_data_in[15:0] == 16'hFFFF) begin
-						read_done <= 1'h1;
-					end else if (la_data_in[31:16] == 16'hAB40) begin
+					// if (la_data_in[15:0] == 16'hFFFF) begin
+					// 	read_done <= 1'h1;
+					// end else 
+					if (la_data_in[31:16] == 16'hAB40) begin
 						read_done <= 1'h1;
 					end else 
 						enable_write <= 1'h0;

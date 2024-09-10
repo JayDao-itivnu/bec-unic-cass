@@ -23,16 +23,14 @@ module la_test1_tb;
 	reg CSB;
 
 	reg power1, power2;
-	
-	integer id_test;
 
 	wire gpio;
 	wire uart_tx;
 	wire [37:0] mprj_io;
 	wire [15:0] checkbits;
-	// wire [15:0] id_test;
+	wire [7:0] id_test;
 	assign checkbits  = mprj_io[31:16];
-
+	assign id_test = mprj_io[15:8];
 
 	always #12.5 clock <= (clock === 1'b0);
 
@@ -155,11 +153,8 @@ module la_test1_tb;
 		$display("%c[0m",27);
 		$finish;
 	end
-	always @(mprj_io[15:0])
-		id_test = mprj_io[15:0];
 
-
-	initial begin
+	always @(*) begin
 		// $display (mprj_io[31:0])
 		// for (i = 0; i < 10; i++) begin
 		// 	$display("Current loop #%0d \n============================",i);
@@ -181,24 +176,25 @@ module la_test1_tb;
 		// 	$display("LA Test 1 done");
 		// 	$display("============================");
 		// end
-		wait(checkbits == 16'hAB40);
-		$display("LA Test #%0d started", id_test);
-		wait(checkbits == 16'hAB41);
-		$display("LA Test #%0d read data", id_test);
-		wait(checkbits == 16'hAB42);
-		$display("LA Test #%0d processing", id_test);
-		wait(checkbits == 16'hAB51);
-		$display("LA Test #%0d writing data to processor ...", id_test);
-		wait(checkbits != 16'hAB51);
-		if (checkbits == 16'hAB43) begin
-			$display("LA Test #%0d write data done", id_test);
-		end else if (checkbits == 16'hAB44) begin
-			$display("LA Test #%0d write data failed", id_test);
+		if (checkbits == 16'hAB40)begin
+			$display("LA Test #%h started", id_test);
+		end else if (checkbits == 16'hAB41) begin
+			$display("LA Test #%h read data", id_test);
+		end else if (checkbits == 16'hAB42) begin
+			$display("LA Test #%h processing", id_test);
+		end else if (checkbits == 16'hAB51)  begin
+			$display("LA Test #%h writing data to processor ...", id_test);
 		end
-		wait(checkbits == 16'hABFF);
-		$display("LA Test 1 done");
-		#10000;
-		$finish;
+		if (checkbits == 16'hAB43) begin
+			$display("LA Test #%h write data done", id_test);
+		end else if (checkbits == 16'hAB44) begin
+			$display("LA Test #%h write data failed", id_test);
+		end
+		if (checkbits == 16'hABFF) begin
+			$display("LA Test 1 done");
+			#10000;
+			$finish;
+		end
 	end
 
 	initial begin
