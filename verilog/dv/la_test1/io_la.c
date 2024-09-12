@@ -97,25 +97,25 @@ static uint32_t read_data (uint32_t cpuStatus) {
 			reg_wout_4 = reg_la2_data_in;
 			reg_wout_5 = reg_la1_data_in;
 
-			reg_la0_data = 0x08000000 ^ cpuStatus;
+			reg_la0_data = 0x08AB0000 ^ cpuStatus;
 		} else if ((reg_la3_data_in & 0xFF000000) == 0xCC000000) {
 			reg_zout_0 = reg_la3_data_in & 0x03FFFFFF;
 			reg_zout_1 = reg_la2_data_in;
 			reg_zout_2 = reg_la1_data_in;
 
-			reg_la0_data = 0x0C000000 ^ cpuStatus;
+			reg_la0_data = 0x0CAB0000 ^ cpuStatus;
 		} else if ((reg_la3_data_in & 0xFF000000) == 0xD0000000) {
 			reg_zout_3 = reg_la3_data_in & 0x03FFFFFF;
 			reg_zout_4 = reg_la2_data_in;
 			reg_zout_5 = reg_la1_data_in;
 
-			reg_la0_data = 0x10000000 ^ cpuStatus;
+			reg_la0_data = 0x10AB0000 ^ cpuStatus;
 		} else {
 			reg_wout_0 = reg_la3_data_in & 0x03FFFFFF;
 			reg_wout_1 = reg_la2_data_in;
 			reg_wout_2 = reg_la1_data_in;
 			
-			reg_la0_data = 0x04000000 ^ cpuStatus;
+			reg_la0_data = 0x04AB0000 ^ cpuStatus;
 		}
 	}
 	return reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5;

@@ -133,17 +133,13 @@ module user_proj_example #(
 				master_enable <= 1'b0;
 				master_load <= 1'b0;
                 master_write_ena <= 1'b0;
-				if (la_data_in[15:0] == 16'hFFFF ) 
-					cpuStatus = 1'b1;
-				else
-					cpuStatus = 1'b0;
 			end 
 
 			write_mode: begin
 				master_enable <= 1'b0;
 				master_load <= 1'b1;
                 master_write_ena <= 1'b0;
-				if ((la_data_in[125] | la_data_in[124] | la_data_in[123] | la_data_in[122])) begin
+				if (la_data_in[125:96] == 32'h00000000) begin
 					cpuStatus = 1'b1;
 				end else begin
 					cpuStatus = 1'b0;
@@ -277,8 +273,7 @@ module user_proj_example #(
 				read_mode: begin
 					if (la_data_in[15:0] == 16'hFFFF) begin
 						read_done <= 1'h1;
-					end 
-					if (la_data_in[31:0] == 32'hAB400000) begin
+					end else if (la_data_in[23:16] == 8'hAB) begin
 						case (la_data_in[31:16]) 
 							16'h0400: begin
 								la_data_out[113:32] 	<= rega[80:0]; 
@@ -298,7 +293,6 @@ module user_proj_example #(
 								la_data_out[113:32] 	<= rega[162:81]; 
 								la_data_out[127:114]	<= 14'b11000100000000;
 							end
-						
 						endcase
 					end
 				end
