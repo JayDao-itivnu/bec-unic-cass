@@ -78,14 +78,19 @@ void main()
 	cpuStatus = 0x00000000; 	// Processor is ready
 
 	for (uint32_t i = 0; i< 2; i++){
-		while ((reg_la3_data_in & 0xC0000000) == 0x40000000) {
+		reg_la0_data = 0xAB40FFFF;
+		while ((reg_la3_data_in & 0xFF000000) != 0x78000000) {
 			// Write Process from Processor to BEC core (la3[31:30] = "01")
 			cpuStatus = 0x0000FFFF;
 			reg_mprj_datal = 0xAB410000 ^ (i << 8);
 			write_data(i);
-			break;
+			// break;
 		}
-		reg_la0_data 	=	0xAB410000 ^ cpuStatus;
+		while (reg_la3_data_in != 0x9C000000) {
+			// Hold BEC wait until jump to `Proc` state
+			reg_la0_data 	=	0xAB410000 ^ cpuStatus;
+		}
+
 		while (reg_la3_data_in  == 0x9C000000) {
 			// Inform processer being processing
 			reg_mprj_datal = 0xAB420000 ^ (i << 8);
@@ -95,19 +100,27 @@ void main()
 			reg_la1_oenb = reg_la1_iena = 0x00000000;  // [63:32]
 			reg_la2_oenb = reg_la2_iena = 0x00000000;  // [95:64]
 			reg_la3_oenb = reg_la3_iena = 0x00000000;  // [127:96]
-			reg_la0_data =0xAB400000; // Processor ready for read results from BEC 
+			reg_la0_data =0xAB40FFFF; // Processor ready for read results from BEC 
 
 		}
 		reg_mprj_datal = 0xAB510000 ^ (i << 8);
 		
-		reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5 = read_data(cpuStatus);
+		reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5 = read_data();
 		
-		if (reg_wout_1 == w1[1]){
-			reg_mprj_datal = 0xAB430000 ^ (i << 8);
-		} else {
-			reg_mprj_datal = 0xAB440000 ^ (i << 8);
+		while (1){
+			reg_la0_data = 0xAB500000 ^ cpuStatus;
+			if (reg_wout_1 == w1[1]){
+				reg_mprj_datal = 0xAB430000 ^ (i << 8);
+			} else {
+				reg_mprj_datal = 0xAB440000 ^ (i << 8);
+			}
+			break;
 		}
-		reg_la0_data = 0x00000000 ^ cpuStatus;
+		while (reg_la3_data_in ^ 0xFF000000 == 0xC400000) {
+			reg_la0_data = 0xAB500000 ^ cpuStatus;
+			if (reg_la3_data_in == 0x40000002)
+				break;
+		}
 		// reg_mprj_datal = 0xAB510000;
 	}
 	reg_mprj_datal = 0xABFF0000;

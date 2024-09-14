@@ -41,7 +41,9 @@ module user_proj_example #(
 )(
 `ifdef USE_POWER_PINS
 	inout vccd1,	// User area 1 1.8V supply
-	inout vssd1,	// User area 1 digital ground
+    inout vccd2,	// User area 2 1.8v supply
+    inout vssd1,	// User area 1 digital ground
+    inout vssd2,	// User area 2 digital ground
 `endif
 
 	// // Wishbone Slave ports (WB MI A)
@@ -88,18 +90,21 @@ module user_proj_example #(
 			current_state <= next_state;
 	end
 
-	always @(la_data_in or read_done or updateRegs) begin
+	always @(enable_write or enable_proc or updateRegs or read_done) begin
 		case (current_state)
 			idle: begin
-				if (enable_write == 1'b1) begin
-					next_state <= write_mode;
+				if (enable_write == 1'b1 & updateRegs == 1'b1) begin
+					if (cpuStatus == 1'b1) 
+						next_state <= proc;
+					else
+						next_state <= write_mode;
 				end else begin 
 					next_state <= idle;
 				end
 			end
 
 			write_mode: begin
-				if (enable_proc == 1'b1) begin
+				if (enable_proc == 1'b1 & updateRegs == 1'b1) begin
 					next_state <= proc;
 				end else begin 
 					next_state <= write_mode;
@@ -108,15 +113,21 @@ module user_proj_example #(
 
 			proc: begin
 				if (updateRegs == 1'b1) begin
-                	next_state <= read_mode;
+					if (cpuStatus == 1'b1) 
+                		next_state <= idle;
+					else
+						next_state <= read_mode;
 				end else begin 
 					next_state <= proc;
 				end
 			end
 
 			read_mode: begin
-				if (read_done == 1'b1) begin
-					next_state <= idle;
+				if (updateRegs == 1'b1 & la_data_in[31:0] == 32'hAB500000) begin
+					if (cpuStatus == 1'b1) 
+                		next_state <= proc;
+					else
+						next_state <= idle;
 				end else begin
 					next_state <= read_mode;
 				end
@@ -132,17 +143,23 @@ module user_proj_example #(
 			idle: begin
 				master_enable <= 1'b0;
 				master_load <= 1'b0;
-                master_write_ena <= 1'b0;
+				if (cpuStatus == 1'b1)
+                	master_write_ena <= 1'b1;
+				else
+					master_write_ena <= 1'b0;
 			end 
 
 			write_mode: begin
 				master_enable <= 1'b0;
 				master_load <= 1'b1;
-                master_write_ena <= 1'b0;
+                if (cpuStatus == 1'b1)
+					master_write_ena <= 1'b1;
+				else
+					master_write_ena <= 1'b0;
 				if (la_data_in[125:96] == 32'h00000000) begin
-					cpuStatus = 1'b1;
+					cpuStatus <= 1'b1;
 				end else begin
-					cpuStatus = 1'b0;
+					cpuStatus <= 1'b0;
 				end
 			end
 
@@ -150,17 +167,22 @@ module user_proj_example #(
 				master_write_ena <= 1'b1;
 				master_enable <= 1'b1;
 				master_load <= 1'b0;
+				cpuStatus <= 1'b0;
 			end
 
 			read_mode: begin
-				master_write_ena <= 1'b0;
-
 				master_enable <= 1'b0;
 				master_load <= 1'b0;
-				if (la_data_in[15:0] == 16'hFFFF ) 
-					cpuStatus = 1'b1;
-				else
-					cpuStatus = 1'b0;
+				if (la_data_in[15:0] == 16'hFFFF ) begin
+					cpuStatus <= 1'b1;
+					master_write_ena <= 1'b1;
+				end else begin
+					cpuStatus <= 1'b0;
+					if (updateRegs)
+						master_write_ena <= 1'b0;
+					else
+						master_write_ena <= 1'b1;
+				end
                 
 			end
 			default: begin
@@ -168,9 +190,9 @@ module user_proj_example #(
 				master_load <= 1'b0;
                 master_write_ena <= 1'b0;
 				if (la_data_in[15:0] == 16'hFFFF ) 
-					cpuStatus = 1'b1;
+					cpuStatus <= 1'b1;
 				else
-					cpuStatus = 1'b0;
+					cpuStatus <= 1'b0;
 			end 
 		endcase 
 	end
@@ -186,6 +208,8 @@ module user_proj_example #(
 			regh <= 0;
 			la_data_out <= {(128){1'b0}};
 			read_done <= 1'b0;
+			enable_proc <= 1'b0;
+			enable_write <= 1'b0;
 		end else begin
 			case (current_state)
 				idle: begin
@@ -202,20 +226,17 @@ module user_proj_example #(
 					When process being busy (la_data_in[15:0] == 16'hFFFF), 
 					BEC core automatically continues processing the existence data
 					*/
-					if (la_data_in[15:0] == 16'hFFFF) begin			// Enable Full-load Processing
-						enable_write <= 1'h1;
-					end else if (la_data_in[31:16] == 16'hAB40) begin
+					if (la_data_in[31:16] == 16'hAB40) begin
 						enable_write <= 1'h1;
 					end else 
 						enable_write <= 1'h0;
 				end 
 
 				write_mode: begin
+					read_done <= 1'b0;
+					enable_write <= 1'h0;
 					// Enable Full-load Processing
-					if (la_data_in[15:0] == 16'hFFFF) begin		
-						// Processor informs being busy	
-						enable_proc <= 1'h1;
-					end else if (la_data_in[31:16] == 16'hAB41) begin
+					if (la_data_in[31:16] == 16'hAB41) begin
 						enable_proc <= 1'h1;
 					end else 
 						enable_proc <= 1'h0;
@@ -266,32 +287,48 @@ module user_proj_example #(
 				end
 				
 				proc: begin
+					read_done <= 1'b0;
 					la_data_out[127:122] <= 6'b100111;
 					la_data_out[121:0] <= {(122){1'b0}};
+					enable_write <= 1'h0;
 				end
 
 				read_mode: begin
-					if (la_data_in[15:0] == 16'hFFFF) begin
-						read_done <= 1'h1;
-					end else if (la_data_in[23:16] == 8'hAB) begin
-						case (la_data_in[31:16]) 
-							16'h0400: begin
+					enable_write <= 1'h0;
+					if (la_data_in[31:24] == 8'hAB) begin
+						case (la_data_in[23:16]) 
+							8'h04: begin
 								la_data_out[113:32] 	<= rega[80:0]; 
 								la_data_out[127:114]	<= 14'b11001000000000;
 							end
 
-							16'h0800: begin
+							8'h08: begin
 								la_data_out[113:32] 	<= regb[162:81]; 
 								la_data_out[127:114]	<= 14'b11001100000000;
 							end
 
-							16'h0C00: begin
+							8'h0C: begin
 								la_data_out[113:32] 	<= regb[80:0]; 
-								la_data_out[127:114]	<= 14'b11010000000000;
+								la_data_out[127:114]	<= 14'b11010000000000;		// 0xD0
 							end
+
+							8'h10: begin
+								if (updateRegs)
+									read_done <= 1'b1;
+								else
+									read_done <= 1'b0;
+							end
+
+							// 8'h50: begin
+							// 	read_done <= 1'b1;
+							// end
 							default: begin
-								la_data_out[113:32] 	<= rega[162:81]; 
-								la_data_out[127:114]	<= 14'b11000100000000;
+								if (cpuStatus == 1'b0 & updateRegs == 1'b1) begin
+									la_data_out[127:114]	<= 14'b00110000000000;
+								end else begin
+									la_data_out[113:32] 	<= rega[162:81]; 
+									la_data_out[127:114]	<= 14'b11000100000000;
+								end
 							end
 						endcase
 					end
